@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>StudyReport</title>
+    <meta name="data-app-version" content="1.1.0">
+    <link rel="stylesheet" href="./css/style.css?v=1.1.0">
+    <link rel="manifest" href="./js/manifest.json?v=1.0.0">
+    <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
+    
+    <!-- Firebase SDK (Compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+
+<body>
+    <div class="container">
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">勉強報告メール作成</h2>
+            <div id="auth-container">
+                <button id="login-btn" onclick="login()" style="background-color: #4285F4; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Googleでログイン</button>
+                <div id="user-info" style="display: none; align-items: center; gap: 10px;">
+                    <img id="user-icon" src="" alt="User" style="width: 32px; height: 32px; border-radius: 50%;">
+                    <span id="user-name" style="font-size: 0.9em;"></span>
+                    <button onclick="logout()" style="background-color: #ddd; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">ログアウト</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="date-section">
+            <label for="report-date">日付: </label>
+            <input type="date" id="report-date">
+        </div>
+
+        <div id="subjects-container"></div>
+        <div class="controls">
+            <button class="add-btn" onclick="addSubject()">＋ 教科を追加する</button>
+            <button class="reset-btn" onclick="resetData()">この日の入力をクリア</button>
+        </div>
+
+
+        <div class="global-comment-section">
+            <label style="font-size: 1.1em; color: #006680;">全体の感想・コメント</label>
+            <textarea id="global-comment-text" placeholder="コメント" oninput="generateText()"></textarea>
+        </div>
+        <div class="result-area">
+            <h3>作成されたメール本文</h3>
+            <div class="total-display" id="screen-total">合計: 0時間 0分</div>
+            <button class="copy-btn" onclick="copyToClipboard()">本文をコピーする</button>
+            <textarea id="output-text" readonly></textarea>
+        </div>
+        <div class="backup-controls">
+            <button onclick="exportData()" class="export-btn">データ書き出し (保存)</button>
+            <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み (復元)</button>
+            <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json">
+        </div>
+    </div>
+    <script src="./js/firebase-init.js"></script>
+    <script src="./js/script.js?v=1.1.0"></script>
+</body>
+
+</html>
