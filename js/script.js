@@ -267,10 +267,10 @@ function login() {
 function logout() {
     firebase.auth().signOut().then(() => {
         console.log("Logged out");
-        // ログアウト時にデータをクリアする（他の人のデータが見えないように）
-        localStorage.removeItem('studyReportAllData'); 
-        container.innerHTML = '';
-        addSubject(); // 空の行を追加
+        // ログアウトしてもデータはクリアしない（ユーザー要望: クラウド優先だが表示は残す）
+        // localStorage.removeItem('studyReportAllData'); 
+        // container.innerHTML = '';
+        // addSubject(); 
         alert("ログアウトしました");
     }).catch((error) => {
         console.error(error);
