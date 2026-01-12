@@ -155,6 +155,7 @@ function generateText() {
     
     // Firebaseに保存 (デバウンス処理: 1秒後に保存)
     if (!isUpdatingFromFirestore) {
+        if (currentUser) updateSaveStatus('saving'); // ログイン時のみステータス表示
         if (saveTimeout) clearTimeout(saveTimeout);
         saveTimeout = setTimeout(() => {
             saveToFirestore(currentDateStr, saveDataArray, globalComment);
@@ -205,8 +206,14 @@ function saveToFirestore(dateKey, subjects, comment) {
         comment: comment,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     })
-    .then(() => console.log("Document successfully written!"))
-    .catch((error) => console.error("Error writing document: ", error));
+    .then(() => {
+        console.log("Document successfully written!");
+        updateSaveStatus('saved');
+    })
+    .catch((error) => {
+        console.error("Error writing document: ", error);
+        updateSaveStatus('error');
+    });
 }
 
 function loadData() {
@@ -260,10 +267,31 @@ function login() {
 function logout() {
     firebase.auth().signOut().then(() => {
         console.log("Logged out");
+        // ログアウト時にデータをクリアする（他の人のデータが見えないように）
+        localStorage.removeItem('studyReportAllData'); 
+        container.innerHTML = '';
+        addSubject(); // 空の行を追加
         alert("ログアウトしました");
     }).catch((error) => {
         console.error(error);
     });
+}
+
+function updateSaveStatus(status) {
+    const statusEl = document.getElementById('save-status');
+    if (!statusEl) return;
+    
+    if (status === 'saving') {
+        statusEl.textContent = '保存中...';
+        statusEl.style.color = '#888';
+    } else if (status === 'saved') {
+        statusEl.textContent = '保存完了';
+        statusEl.style.color = '#4CAF50';
+        setTimeout(() => { statusEl.textContent = ''; }, 2000); // 2秒後に消す
+    } else if (status === 'error') {
+        statusEl.textContent = '保存エラー';
+        statusEl.style.color = 'red';
+    }
 }
 
 function updateAuthUI(user) {
