@@ -25,6 +25,8 @@ let isUpdatingFromFirestore = false;
 let unsubscribe = null;
 let saveTimeout = null;
 let currentUser = null;
+// Cloudとの同期が完了したかどうかのフラグ (初期ロード時の上書き防止)
+let isCloudInitialized = false;
 
 // デフォルトの日付を今日に設定
 window.onload = () => {
@@ -184,19 +186,29 @@ function getAllData() {
 
 function saveToLocalStorage(dateKey, subjects, comment) {
     const allData = getAllData();
-    // 空データでも保存して、その日の記録として残す（あるいは削除するロジックにするか？今回は上書き保存）
-    // もし完全に空ならキーを削除する手もあるが、シンプルに保存する
-    allData[dateKey] = { subjects: subjects, comment: comment };
+    // タイムスタンプを追加して保存
+    allData[dateKey] = { 
+        subjects: subjects, 
+        comment: comment,
+        localUpdatedAt: Date.now() // ローカル更新時刻を記録
+    };
     localStorage.setItem('studyReportAllData', JSON.stringify(allData));
 }
 
 function saveToFirestore(dateKey, subjects, comment) {
     if (!db) return;
     
-    // ログインしていなければ保存しない（あるいは「未ログイン」というコレクションに入れる？）
-    // ここではログイン必須とする
     if (!currentUser) {
         console.log("Not logged in. Skipping Firestore save.");
+        return;
+    }
+
+    // まだクラウドの初期データをロードしていない場合、安易に上書きしない
+    // (空のローカルデータでクラウドを消してしまうのを防ぐ)
+    if (!isCloudInitialized) {
+        // 例外: オフラインなどでそもそも繋がらない場合はどうする？
+        // 一旦、onSnapshotが一度でも返ってくるのを待つのが安全
+        console.log("Waiting for cloud init...");
         return;
     }
 
@@ -234,19 +246,55 @@ function setupRealtimeListener(dateKey) {
 
     if (!db || !currentUser) return; // ログインしていなければリスナー設定しない
 
+    // リスナー設定時は初期化フラグをリセット
+    isCloudInitialized = false;
+
     // ユーザーごとのパス
     unsubscribe = db.collection("users").doc(currentUser.uid).collection("reports").doc(dateKey)
         .onSnapshot((doc) => {
+            // 初回であろうと更新であろうと、ここに来たら「クラウドと疎通できた」とみなす
+            isCloudInitialized = true;
+
             if (doc.metadata.hasPendingWrites) {
                 return;
             }
 
             const data = doc.data();
             if (data) {
-                isUpdatingFromFirestore = true;
-                saveToLocalStorage(dateKey, data.subjects, data.comment);
-                renderData(data);
-                isUpdatingFromFirestore = false;
+                // コンフリクト解消ロジック:
+                // クラウドの更新日時と比較して、「ローカルの方が圧倒的に新しい」場合はクラウドを採用しない
+                const allData = getAllData();
+                const localData = allData[dateKey];
+                
+                let shouldUseCloud = true;
+
+                if (localData && localData.localUpdatedAt && data.updatedAt) {
+                    const cloudTime = data.updatedAt.toDate().getTime();
+                    const localTime = localData.localUpdatedAt;
+                    
+                    // ローカルの方が10秒以上新しいなら、ローカル優先 (10秒はクロックずれなどのマージン)
+                    if (localTime > cloudTime + 10000) {
+                        console.log("Local data is newer, ignoring cloud update.");
+                        shouldUseCloud = false;
+                        // クラウドが古い場合、ローカルの内容で上書き保存をトリガーするべきか？
+                        // 次の入力時に保存されるので、ここでは何もしなくて良いが、
+                        // 明示的に保存したい場合はここで saveToFirestore を呼ぶ手もある。
+                        // 今回は「入力待ち」とする。
+                    }
+                }
+
+                if (shouldUseCloud) {
+                    isUpdatingFromFirestore = true;
+                    saveToLocalStorage(dateKey, data.subjects, data.comment);
+                    renderData(data);
+                    isUpdatingFromFirestore = false;
+                }
+            } else {
+                // クラウドにデータがない (存在しない) 場合
+                // ローカルにデータがあるなら、それをクラウドに書き込むべきかもしれないが、
+                // 「初期ロード時の誤削除」を防ぐため、何もしない（ローカル維持）
+                // ユーザーが何か入力すれば保存される。
+                console.log("No cloud data yet.");
             }
         });
 }
