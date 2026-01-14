@@ -1,7 +1,7 @@
 {
     "name": "Study Report",
     "short_name": "StudyReport",
-    "start_url": "https://mejiruku.github.io/study-report/",
+    "start_url": "https://mejiruku.github.io/BetaStudyReport/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#4CAF50",
@@ -10,4 +10,5 @@
         "sizes": "180x180",
         "type": "image/png"
     }]
+
 }
