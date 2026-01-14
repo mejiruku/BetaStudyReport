@@ -26,9 +26,9 @@ const dateInput = document.getElementById('report-date');
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userDisplay = document.getElementById('user-display');
+const userIcon = document.getElementById('user-icon');
 let currentUser = null;
 
-// デフォルトの日付を今日に設定
 // デフォルトの日付を今日に設定 & Auth監視
 window.onload = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -62,10 +62,19 @@ function updateAuthUI(user) {
         logoutBtn.style.display = 'inline-block';
         userDisplay.style.display = 'inline-block';
         userDisplay.innerText = user.email;
+        
+        if (user.photoURL) {
+            userIcon.src = user.photoURL;
+            userIcon.style.display = 'block';
+        } else {
+            userIcon.style.display = 'none';
+        }
     } else {
         loginBtn.style.display = 'inline-block';
         logoutBtn.style.display = 'none';
         userDisplay.style.display = 'none';
+        userIcon.style.display = 'none';
+        userIcon.src = "";
     }
 }
 

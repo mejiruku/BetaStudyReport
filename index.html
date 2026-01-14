@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="1.1.0">
-    <link rel="stylesheet" href="./css/style.css?v=1.1.0">
-    <link rel="manifest" href="./js/manifest.json?v=1.0.0">
+    <meta name="data-app-version" content="1.2.0">
+    <link rel="stylesheet" href="./css/style.css?v=1.1.1">
+    <link rel="manifest" href="./js/manifest.json?v=1.1.0">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
 </head>
@@ -16,8 +16,9 @@
     <div class="container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2>勉強報告メール作成</h2>
-            <div id="auth-container">
-                <span id="user-display" style="font-size: 0.9em; margin-right: 10px; display: none;"></span>
+            <div id="auth-container" style="display: flex; align-items: center; gap: 10px;">
+                <img id="user-icon" src="" alt="" style="width: 28px; height: 28px; border-radius: 50%; display: none; object-fit: cover;">
+                <span id="user-display" style="font-size: 0.9em; display: none;"></span>
                 <button id="login-btn" onclick="login()" style="background: #4285F4; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Googleでログイン</button>
                 <button id="logout-btn" onclick="logout()" style="background: #ccc; color: black; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; display: none;">ログアウト</button>
             </div>
@@ -55,7 +56,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    
+
     <!-- Init Firebase -->
     <script src="./js/firebase-init.js?v=custom"></script>
 
