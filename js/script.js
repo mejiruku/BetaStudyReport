@@ -27,7 +27,11 @@ const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userDisplay = document.getElementById('user-display');
 const userIcon = document.getElementById('user-icon');
+const saveStatus = document.getElementById('save-status');
 let currentUser = null;
+let saveTimer = null;
+let isSaving = false;
+let isLoading = false; // Flag to prevent auto-save during initial load
 
 // デフォルトの日付を今日に設定 & Auth監視
 window.onload = () => {
@@ -55,6 +59,39 @@ window.onload = () => {
         }
     });
 };
+
+
+    
+    // Unsaved changes warning
+    window.addEventListener('beforeunload', (e) => {
+        if (isSaving || saveTimer) {
+            e.preventDefault();
+            e.returnValue = ''; // Standard for Chrome
+        }
+    });
+
+
+function updateSaveStatus(status) {
+    if (!saveStatus) return;
+    
+    // Clear classes
+    saveStatus.className = 'save-status';
+    
+    if (status === 'saving') {
+        saveStatus.innerText = '保存中...';
+        saveStatus.classList.add('saving');
+    } else if (status === 'saved') {
+        saveStatus.innerText = '保存完了';
+        saveStatus.classList.add('saved');
+    } else if (status === 'error') {
+        saveStatus.innerText = '保存失敗';
+        saveStatus.classList.add('error');
+    } else if (status === 'unsaved') {
+        saveStatus.innerText = '未保存';
+    } else {
+        saveStatus.innerText = '';
+    }
+}
 
 function updateAuthUI(user) {
     if (user) {
@@ -231,25 +268,49 @@ function generateText() {
     screenTotal.innerText = `合計: ${totalH}時間 ${totalM}分`;
     outputText.value = finalText;
     
-    // 現在の日付に対して保存
+    if (isLoading) return; // Don't save if we are just loading data
+
+    // Debounced Save
+    updateSaveStatus('saving');
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+        performSave(currentDateStr, saveDataArray, globalComment);
+    }, 1500); // 1.5 second delay
+}
+
+function performSave(dateKey, subjects, comment) {
+    isSaving = true;
+    saveTimer = null;
+    
     if (currentUser) {
-        saveToFirestore(currentDateStr, saveDataArray, globalComment);
+        saveToFirestore(dateKey, subjects, comment);
     } else {
-        saveToLocalStorage(currentDateStr, saveDataArray, globalComment);
+        saveToLocalStorage(dateKey, subjects, comment);
     }
 }
 
 // ------ Firestore Saving ------
 function saveToFirestore(dateKey, subjects, comment) {
-    if (!currentUser) return;
+    if (!currentUser) {
+        isSaving = false;
+        return;
+    }
     const docRef = db.collection('users').doc(currentUser.uid).collection('reports').doc(dateKey);
     docRef.set({
         subjects: subjects,
         comment: comment,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     })
-    .then(() => console.log("Saved to Firestore"))
-    .catch(err => console.error("Error saving", err));
+    .then(() => {
+        console.log("Saved to Firestore");
+        isSaving = false;
+        updateSaveStatus('saved');
+    })
+    .catch(err => {
+        console.error("Error saving", err);
+        isSaving = false;
+        updateSaveStatus('error');
+    });
 }
 
 // ------ ストレージ関連 (日付対応) ------
@@ -272,11 +333,20 @@ function getAllData() {
 }
 
 function saveToLocalStorage(dateKey, subjects, comment) {
-    const allData = getAllData();
-    // 空データでも保存して、その日の記録として残す（あるいは削除するロジックにするか？今回は上書き保存）
-    // もし完全に空ならキーを削除する手もあるが、シンプルに保存する
-    allData[dateKey] = { subjects: subjects, comment: comment };
-    localStorage.setItem('studyReportAllData', JSON.stringify(allData));
+    try {
+        const allData = getAllData();
+        allData[dateKey] = { subjects: subjects, comment: comment };
+        localStorage.setItem('studyReportAllData', JSON.stringify(allData));
+        setTimeout(() => {
+            // Simulate async for consistency or just direct
+            isSaving = false;
+            updateSaveStatus('saved');
+        }, 300);
+    } catch (e) {
+        console.error(e);
+        isSaving = false;
+        updateSaveStatus('error');
+    }
 }
 
 function loadData() {
@@ -306,6 +376,7 @@ function loadData() {
 }
 
 function renderData(dayData) {
+    isLoading = true; // Start loading mode
     container.innerHTML = '';
     if (dayData) {
         globalCommentInput.value = dayData.comment || "";
@@ -320,6 +391,8 @@ function renderData(dayData) {
         addSubject();
     }
     // generateTextはaddSubject内で呼ばれるため不要 (ただし初回ロード時は合計計算のため呼んでもいいが、addSubjectが呼ぶのでOK)
+    isLoading = false; // End loading mode
+    updateSaveStatus('saved'); // Initial state is "saved" (sync with DB)
 }
 
 

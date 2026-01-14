@@ -14,13 +14,16 @@
 
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>勉強報告メール作成</h2>
-            <div id="auth-container" style="display: flex; align-items: center; gap: 10px;">
+        <div class="header-container">
+            <div class="header-title-box">
+                <h2>勉強報告メール作成</h2>
+                <span id="save-status" class="save-status"></span>
+            </div>
+            <div id="auth-container" class="auth-container">
                 <img id="user-icon" src="" alt="" style="width: 28px; height: 28px; border-radius: 50%; display: none; object-fit: cover;">
                 <span id="user-display" style="font-size: 0.9em; display: none;"></span>
-                <button id="login-btn" onclick="login()" style="background: #4285F4; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Googleでログイン</button>
-                <button id="logout-btn" onclick="logout()" style="background: #ccc; color: black; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; display: none;">ログアウト</button>
+                <button id="login-btn" onclick="login()" class="auth-btn login">Googleでログイン</button>
+                <button id="logout-btn" onclick="logout()" class="auth-btn logout" style="display: none;">ログアウト</button>
             </div>
         </div>
 

@@ -19,9 +19,65 @@ body {
 }
 
 h2 {
-  text-align: center;
+  text-align: left; /* Changed from center to allow flex alignment, or kept center if needed inside title-box */
   color: #444;
-  margin-top: 0;
+  margin: 0;
+}
+
+/* Header & Auth Styles */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.header-title-box {
+  display: flex;
+  align-items: baseline;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.save-status {
+  font-size: 0.9em;
+  color: #666;
+  font-weight: bold;
+}
+.save-status.saving {
+  color: #2196f3;
+}
+.save-status.saved {
+  color: #4caf50;
+}
+.save-status.error {
+  color: #f44336;
+}
+
+.auth-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-btn {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.auth-btn.login {
+  background: #4285f4;
+  color: white;
+}
+
+.auth-btn.logout {
+  background: #ccc;
+  color: black;
 }
 
 /* 教科ごとの入力ブロック */
@@ -199,6 +255,26 @@ textarea {
   .container {
     padding: 15px;
   }
+
+  /* Header Responsive */
+  .header-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .header-title-box {
+    justify-content: space-between;
+    width: 100%;
+    align-items: center;
+  }
+  .header-title-box h2 {
+    font-size: 1.3em;
+  }
+  .auth-container {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
   .controls {
     flex-direction: column;
     align-items: stretch;
