@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
     <meta name="data-app-version" content="1.2.1">
-    <link rel="stylesheet" href="./css/style.css?v=1.2.0">
+    <link rel="stylesheet" href="./css/style.css?v=1.1.1">
     <link rel="manifest" href="./js/manifest.json?v=1.1.0">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -16,7 +16,7 @@
     <div class="container">
         <div class="header-container">
             <div class="header-title-box">
-                <h2>勉強報告メール作成</h2>
+                <h2>勉強報告メール</h2>
                 <span id="save-status" class="save-status"></span>
             </div>
             <div id="auth-container" class="auth-container">
@@ -44,7 +44,7 @@
             <textarea id="global-comment-text" placeholder="コメント" oninput="generateText()"></textarea>
         </div>
         <div class="result-area">
-            <h3>作成されたメール本文</h3>
+            <h3>メール本文</h3>
             <div class="total-display" id="screen-total">合計: 0時間 0分</div>
             <button class="copy-btn" onclick="copyToClipboard()">本文をコピーする</button>
             <textarea id="output-text" readonly></textarea>
@@ -64,7 +64,7 @@
     <script src="./js/firebase-init.js?v=custom"></script>
 
     <!-- App Logic -->
-    <script src="./js/script.js?v=1.2.0" async></script>
+    <script src="./js/script.js?v=1.1.1" async></script>
 </body>
 
 </html>
