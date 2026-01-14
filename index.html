@@ -10,25 +10,16 @@
     <link rel="manifest" href="./js/manifest.json?v=1.0.0">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
-    <!-- Firebase SDK (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 
 <body>
     <div class="container">
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="margin: 0;">勉強報告メール作成</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>勉強報告メール作成</h2>
             <div id="auth-container">
-                <button id="login-btn" onclick="login()" style="background-color: #4285F4; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Googleでログイン</button>
-                <div id="user-info" style="display: none; align-items: center; gap: 10px;">
-                    <span id="save-status" style="font-size: 0.8em; color: #666;"></span>
-                    <img id="user-icon" src="" alt="User" style="width: 32px; height: 32px; border-radius: 50%;">
-                    <span id="user-name" style="font-size: 0.9em;"></span>
-                    <button onclick="logout()" style="background-color: #ddd; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8em;">ログアウト</button>
-                </div>
+                <span id="user-display" style="font-size: 0.9em; margin-right: 10px; display: none;"></span>
+                <button id="login-btn" onclick="login()" style="background: #4285F4; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">Googleでログイン</button>
+                <button id="logout-btn" onclick="logout()" style="background: #ccc; color: black; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; display: none;">ログアウト</button>
             </div>
         </div>
 
@@ -60,8 +51,16 @@
             <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json">
         </div>
     </div>
-    <script src="./js/firebase-init.js"></script>
-    <script src="./js/script.js?v=1.1.0"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    
+    <!-- Init Firebase -->
+    <script src="./js/firebase-init.js?v=custom"></script>
+
+    <!-- App Logic -->
+    <script src="./js/script.js?v=1.1.0" async></script>
 </body>
 
 </html>

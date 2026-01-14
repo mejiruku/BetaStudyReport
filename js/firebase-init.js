@@ -10,5 +10,8 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+// Initialize Firebase
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+window.db = firebase.firestore();
+window.auth = firebase.auth();
+window.provider = new firebase.auth.GoogleAuthProvider();
