@@ -467,16 +467,47 @@ function copyToClipboard() {
 // ------ エクスポート & インポート ------
 
 function exportData() {
-    const allData = localStorage.getItem('studyReportAllData');
-    if (!allData) {
-        alert("保存されたデータがありません。");
-        return;
+    if (currentUser) {
+        // Cloud Export
+        updateSaveStatus('saving'); // Use visual feedback
+        db.collection('users').doc(currentUser.uid).collection('reports').get()
+        .then(querySnapshot => {
+            let cloudData = {};
+            querySnapshot.forEach(doc => {
+                cloudData[doc.id] = doc.data();
+            });
+            downloadJSON(cloudData, `study_report_cloud_backup_${new Date().toISOString().split('T')[0]}.json`);
+            updateSaveStatus('saved');
+        })
+        .catch(err => {
+            console.error("Export failed", err);
+            alert("クラウドからのデータ取得に失敗しました。");
+            updateSaveStatus('error');
+        });
+    } else {
+        // Local Export
+        const allData = localStorage.getItem('studyReportAllData');
+        if (!allData) {
+            alert("保存されたデータがありません。");
+            return;
+        }
+        // Validate JSON if possible, but it's raw string, so just pass parse/stringify check or direct
+        try {
+            const parsed = JSON.parse(allData);
+            downloadJSON(parsed, `study_report_local_backup_${new Date().toISOString().split('T')[0]}.json`);
+        } catch(e) {
+            alert("データが破損している可能性があります。");
+        }
     }
-    const blob = new Blob([allData], { type: 'application/json' });
+}
+
+function downloadJSON(dataObj, filename) {
+    const jsonStr = JSON.stringify(dataObj, null, 2); // Prettier format
+    const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `study_report_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -491,21 +522,63 @@ function importData(input) {
     reader.onload = function(e) {
         try {
             const json = e.target.result;
-            // JSONのバリデーションを簡易的に行う
             const data = JSON.parse(json);
             if (typeof data !== 'object') throw new Error("Invalid format");
 
             if (confirm("現在のデータを上書きして取り込みますか？")) {
-                localStorage.setItem('studyReportAllData', JSON.stringify(data));
-                loadData();
-                alert("データの取り込みが完了しました。");
+                if (currentUser) {
+                    // Cloud Import
+                    importToCloud(data);
+                } else {
+                    // Local Import
+                    localStorage.setItem('studyReportAllData', JSON.stringify(data));
+                    loadData(); // Reload current view
+                    alert("データの取り込みが完了しました。");
+                }
             }
         } catch (err) {
             alert("ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。");
             console.error(err);
         }
-        // inputをリセット
+        // Reset input
         input.value = '';
     };
     reader.readAsText(file);
+}
+
+function importToCloud(dataObj) {
+    updateSaveStatus('saving');
+    const batchPromises = [];
+    const reportsRef = db.collection('users').doc(currentUser.uid).collection('reports');
+
+    // Firestore batch (limit 500) or parallel set.
+    // For simplicity with unknown size, we'll use parallel set calls.
+    // If concerned about rate limits, we could batch, but standard usage is likely fine.
+    
+    Object.keys(dataObj).forEach(dateKey => {
+        const docData = dataObj[dateKey];
+        // Ensure updatedAt is set effectively or just use serverTimestamp if we want to "touch" them.
+        // Assuming we keep original content exactly.
+        // We might want to add updatedAt: firebase.firestore.FieldValue.serverTimestamp() if missing
+        if (!docData.updatedAt) {
+            docData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        }
+        
+        batchPromises.push(
+            reportsRef.doc(dateKey).set(docData)
+        );
+    });
+
+    Promise.all(batchPromises)
+    .then(() => {
+        console.log("All data imported to cloud");
+        updateSaveStatus('saved');
+        loadData(); // Reload current view
+        alert("クラウドへのデータの取り込みが完了しました。");
+    })
+    .catch(err => {
+        console.error("Cloud import failed", err);
+        alert("一部のデータの取り込みに失敗しました。コンソールを確認してください。");
+        updateSaveStatus('error');
+    });
 }
