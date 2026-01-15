@@ -44,8 +44,7 @@ window.onload = () => {
         updateAuthUI(user);
         if (user) {
             // Logged In: 
-            // 1. Delete Local Data (Strict Rule) - *Only if not already cleared?* 
-            // The requirement says "Data is deleted when YOU LOG IN". 
+            // 1. Delete Local Data (Strict Rule) - *Only if not already cleared?* // The requirement says "Data is deleted when YOU LOG IN". 
             // Since onAuthStateChanged fires on reload too, we should be careful NOT to wipe session data if we are already logged in.
             // However, the rule "Delete local data when logged in" implies local storage should be CLEAN when in logged-in mode.
             // So, simply wiping it is correct to ensure no local data persists.
@@ -244,7 +243,7 @@ function generateText() {
         else if (h === 0 && m > 0) timeStr = `${m}分`;
         else timeStr = `0分`;
 
-        bodyContent += `\n${subjectDisplayName}\n${text}\n勉強時間 ${timeStr}\n\n`;
+        bodyContent += `\n${subjectDisplayName}\n${text}\n勉強時間 ${timeStr}\n`;
     });
 
     const totalH = Math.floor(totalMinutes / 60);
@@ -255,20 +254,19 @@ function generateText() {
     let header = (displayGroups.size > 0) ? `今日は${Array.from(displayGroups).join('と')}をやりました\n` : `今日の学習報告\n`;
     let finalText = header + bodyContent;
 
-    // 2教科以上かつ合計が0より大きい場合のみ合計時間を表示 (古い仕様も維持しつつ、ヘッダーにも追加したので重複するが、本文用として残すか検討。一旦残す)
+    // 2教科以上かつ合計が0より大きい場合のみ合計時間を表示 (ヘッダーと重複するが本文用)
     if (validSubjectCount >= 2 && totalMinutes > 0) {
         let totalTimeStr = (totalM === 0) ? `${totalH}時間` : `${totalH}時間${totalM}分`;
-        finalText += `合計勉強時間 ${totalTimeStr}\n`;
+        // 【修正箇所】先頭に \n を追加して改行を入れています
+        finalText += `\n合計勉強時間 ${totalTimeStr}\n`;
     }
 
     if (globalComment.trim() !== "") {
-        // 本文の末尾の改行を削除してから、明示的に2つ改行を入れてコメントを追加
-        finalText = finalText.trimEnd(); 
         finalText += `\n\n${globalComment}`;
     }
 
     screenTotal.innerText = `合計: ${totalH}時間 ${totalM}分`;
-    outputText.value = finalText.trim();
+    outputText.value = finalText;
     
     if (isLoading) return; // Don't save if we are just loading data
 
@@ -468,64 +466,17 @@ function copyToClipboard() {
 
 // ------ エクスポート & インポート ------
 
-
 function exportData() {
-    if (currentUser) {
-        exportFromFirestore();
-    } else {
-        exportFromLocalStorage();
-    }
-}
-
-function exportFromLocalStorage() {
     const allData = localStorage.getItem('studyReportAllData');
     if (!allData) {
         alert("保存されたデータがありません。");
         return;
     }
-    downloadJSON(allData, `study_report_local_backup_${new Date().toISOString().split('T')[0]}.json`);
-}
-
-function exportFromFirestore() {
-    updateSaveStatus('saving'); // Use saving indicator for feedback
-    db.collection('users').doc(currentUser.uid).collection('reports').get()
-    .then(snapshot => {
-        if (snapshot.empty) {
-            alert("クラウドに保存されたデータがありません。");
-            updateSaveStatus('saved');
-            return;
-        }
-
-        const allData = {};
-        snapshot.forEach(doc => {
-            // Exclude internal fields if necessary, but keeping it simple is fine.
-            // Ideally we only want { subjects, comment } to match local format
-            const data = doc.data();
-            // Remove serverTimestamp if present as it might be an object, but JSON.stringify handles it.
-            // Let's standarize to the expected format:
-            allData[doc.id] = {
-                subjects: data.subjects,
-                comment: data.comment
-            };
-        });
-
-        const jsonString = JSON.stringify(allData);
-        downloadJSON(jsonString, `study_report_cloud_backup_${new Date().toISOString().split('T')[0]}.json`);
-        updateSaveStatus('saved');
-    })
-    .catch(err => {
-        console.error("Export failed", err);
-        alert("データのエクスポートに失敗しました。");
-        updateSaveStatus('error');
-    });
-}
-
-function downloadJSON(cleanJsonString, filename) {
-    const blob = new Blob([cleanJsonString], { type: 'application/json' });
+    const blob = new Blob([allData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = `study_report_backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -540,15 +491,14 @@ function importData(input) {
     reader.onload = function(e) {
         try {
             const json = e.target.result;
+            // JSONのバリデーションを簡易的に行う
             const data = JSON.parse(json);
             if (typeof data !== 'object') throw new Error("Invalid format");
 
             if (confirm("現在のデータを上書きして取り込みますか？")) {
-                if (currentUser) {
-                    importToFirestore(data);
-                } else {
-                    importToLocalStorage(data);
-                }
+                localStorage.setItem('studyReportAllData', JSON.stringify(data));
+                loadData();
+                alert("データの取り込みが完了しました。");
             }
         } catch (err) {
             alert("ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。");
@@ -558,67 +508,4 @@ function importData(input) {
         input.value = '';
     };
     reader.readAsText(file);
-}
-
-function importToLocalStorage(data) {
-    localStorage.setItem('studyReportAllData', JSON.stringify(data));
-    loadData();
-    alert("データの取り込みが完了しました。");
-}
-
-async function importToFirestore(data) {
-    updateSaveStatus('saving');
-    const batchSize = 500;
-    const entries = Object.entries(data);
-    const total = entries.length;
-    
-    if (total === 0) {
-        alert("取り込むデータがありません。");
-        updateSaveStatus('saved');
-        return;
-    }
-
-    // Visual feedback for large imports could be improved, but alert at start/end is basic.
-    console.log(`Starting import of ${total} documents...`);
-
-    let batch = db.batch();
-    let count = 0;
-    let batchCount = 0;
-
-    try {
-        for (const [dateKey, dayData] of entries) {
-            const docRef = db.collection('users').doc(currentUser.uid).collection('reports').doc(dateKey);
-            
-            // Validate data structure lightly
-            const payload = {
-                subjects: dayData.subjects || [],
-                comment: dayData.comment || "",
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            batch.set(docRef, payload);
-            count++;
-
-            if (count >= batchSize) {
-                await batch.commit();
-                console.log(`Committed batch ${++batchCount}`);
-                batch = db.batch();
-                count = 0;
-            }
-        }
-
-        if (count > 0) {
-            await batch.commit();
-            console.log(`Committed final batch`);
-        }
-
-        updateSaveStatus('saved');
-        loadData(); // Reload current view
-        alert("クラウドへのデータの取り込みが完了しました。");
-
-    } catch (err) {
-        console.error("Import failed", err);
-        alert("クラウドへの取り込み中にエラーが発生しました。");
-        updateSaveStatus('error');
-    }
 }
