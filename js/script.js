@@ -47,7 +47,6 @@ function showConfirm(message) {
         const cancelBtn = document.getElementById('confirm-cancel-btn');
         
         if (!modal || !messageEl || !okBtn || !cancelBtn) {
-            // Fallback to native confirm if elements don't exist
             resolve(confirm(message));
             return;
         }
@@ -80,6 +79,59 @@ function showConfirm(message) {
         };
         
         okBtn.addEventListener('click', handleOk);
+        cancelBtn.addEventListener('click', handleCancel);
+        modal.addEventListener('click', handleBackdropClick);
+    });
+}
+
+// --- 書き出しオプションダイアログ関数 ---
+function showExportConfirm() {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('export-modal');
+        const withLogsBtn = document.getElementById('export-with-logs-btn');
+        const noLogsBtn = document.getElementById('export-no-logs-btn');
+        const cancelBtn = document.getElementById('export-cancel-btn');
+        
+        if (!modal || !withLogsBtn || !noLogsBtn || !cancelBtn) {
+            // Fallback
+            resolve('cancel');
+            return;
+        }
+        
+        modal.classList.add('show');
+        
+        const cleanup = () => {
+            modal.classList.remove('show');
+            withLogsBtn.removeEventListener('click', handleWithLogs);
+            noLogsBtn.removeEventListener('click', handleNoLogs);
+            cancelBtn.removeEventListener('click', handleCancel);
+            modal.removeEventListener('click', handleBackdropClick);
+        };
+        
+        const handleWithLogs = () => {
+            cleanup();
+            resolve('with_logs');
+        };
+
+        const handleNoLogs = () => {
+            cleanup();
+            resolve('no_logs');
+        };
+        
+        const handleCancel = () => {
+            cleanup();
+            resolve('cancel');
+        };
+        
+        const handleBackdropClick = (e) => {
+            if (e.target === modal) {
+                cleanup();
+                resolve('cancel');
+            }
+        };
+        
+        withLogsBtn.addEventListener('click', handleWithLogs);
+        noLogsBtn.addEventListener('click', handleNoLogs);
         cancelBtn.addEventListener('click', handleCancel);
         modal.addEventListener('click', handleBackdropClick);
     });
@@ -698,6 +750,11 @@ function copyToClipboard() {
 // ------ エクスポート & インポート ------
 
 async function exportData() {
+    // Show export options modal
+    const exportOption = await showExportConfirm();
+    if (exportOption === 'cancel') return;
+    const includeLogs = (exportOption === 'with_logs');
+
     updateSaveStatus('saving');
     try {
         let reportsData = {};
@@ -710,26 +767,32 @@ async function exportData() {
                 reportsData[doc.id] = doc.data();
             });
 
-            const logsSnapshot = await db.collection('users').doc(currentUser.uid).collection('logs').get();
-            logsData = logsSnapshot.docs.map(doc => {
-                const d = doc.data();
-                // 復元時にタイムスタンプ等を正しく扱えるように整形
-                return {
-                    ...d,
-                    // Firestore Timestamp to easy JSON, though JSON.stringify handles basic objects, 
-                    // importing back needs care if we want serverTimestamp again.
-                    // For export, we just dump what we have.
-                    // createdAt might be a complex object, simplify if needed or trust restore logic.
-                    createdAt: d.createdAt ? (d.createdAt.toMillis ? d.createdAt.toMillis() : d.createdAt) : null
-                };
-            });
+            // Check if user wants logs
+            if (includeLogs) {
+                const logsSnapshot = await db.collection('users').doc(currentUser.uid).collection('logs').get();
+                logsData = logsSnapshot.docs.map(doc => {
+                    const d = doc.data();
+                    // 復元時にタイムスタンプ等を正しく扱えるように整形
+                    return {
+                        ...d,
+                        // Firestore Timestamp to easy JSON, though JSON.stringify handles basic objects, 
+                        // importing back needs care if we want serverTimestamp again.
+                        // For export, we just dump what we have.
+                        // createdAt might be a complex object, simplify if needed or trust restore logic.
+                        createdAt: d.createdAt ? (d.createdAt.toMillis ? d.createdAt.toMillis() : d.createdAt) : null
+                    };
+                });
+            }
         } else {
             // Local Export
             const localReports = localStorage.getItem('studyReportAllData');
             if (localReports) {
                 reportsData = JSON.parse(localReports);
             }
-            logsData = getSyncLogs();
+            // Check if user wants logs
+            if (includeLogs) {
+                logsData = getSyncLogs();
+            }
         }
 
         const exportObj = {

@@ -88,6 +88,18 @@
         </div>
     </div>
 
+    <!-- Export Options Modal -->
+    <div id="export-modal" class="popup-overlay">
+        <div class="popup-content">
+            <p>書き出しオプションを選択してください</p>
+            <div class="confirm-buttons" style="flex-direction: column; gap: 10px;">
+                <button id="export-with-logs-btn" class="popup-btn" style="width: 100%;">ログを含めて書き出し</button>
+                <button id="export-no-logs-btn" class="popup-btn" style="width: 100%; background-color: #4CAF50;">データのみ書き出し</button>
+                <button id="export-cancel-btn" class="popup-btn cancel" style="width: 100%;">キャンセル</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
