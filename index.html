@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="1.2.2">
-    <link rel="stylesheet" href="./css/style.css?v=1.1.1">
+    <meta name="data-app-version" content="1.4.0">
+    <link rel="stylesheet" href="./css/style.css?v=1.2.0">
     <link rel="manifest" href="./js/manifest.json?v=1.1.0">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -16,7 +16,7 @@
     <div class="container">
         <div class="header-container">
             <div class="header-title-box">
-                <h2>勉強報告メール作成</h2>
+                <h2>勉強報告メール</h2>
                 <span id="save-status" class="save-status"></span>
             </div>
             <div id="auth-container" class="auth-container">
@@ -44,17 +44,50 @@
             <textarea id="global-comment-text" placeholder="コメント" oninput="generateText()"></textarea>
         </div>
         <div class="result-area">
-            <h3>作成されたメール本文</h3>
+            <h3>メール本文</h3>
             <div class="total-display" id="screen-total">合計: 0時間 0分</div>
-            <button class="copy-btn" onclick="copyToClipboard()">本文をコピーする</button>
+            <button class="copy-btn" onclick="copyToClipboard()">コピーする</button>
             <textarea id="output-text" readonly></textarea>
         </div>
         <div class="backup-controls">
             <button onclick="exportData()" class="export-btn">データ書き出し (保存)</button>
             <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み (復元)</button>
             <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json">
+            <button onclick="showSyncLog()" class="log-btn">操作ログ</button>
         </div>
     </div>
+
+    <!-- Custom Popup Modal -->
+    <div id="popup-modal" class="popup-overlay">
+        <div class="popup-content">
+            <p id="popup-message"></p>
+            <button id="popup-close-btn" class="popup-btn">OK</button>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="confirm-modal" class="popup-overlay">
+        <div class="popup-content">
+            <p id="confirm-message"></p>
+            <div class="confirm-buttons">
+                <button id="confirm-cancel-btn" class="popup-btn cancel">キャンセル</button>
+                <button id="confirm-ok-btn" class="popup-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Log Modal -->
+    <div id="sync-log-modal" class="popup-overlay">
+        <div class="popup-content log-modal-content">
+            <h3 style="margin-top: 0; color: #006680;">操作ログ</h3>
+            <div id="sync-log-list" class="sync-log-list"></div>
+            <div class="confirm-buttons">
+                <button id="sync-log-clear-btn" onclick="clearSyncLog()" class="popup-btn cancel">ログを全削除</button>
+                <button id="sync-log-close-btn" onclick="closeSyncLogModal()" class="popup-btn">閉じる</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -64,7 +97,7 @@
     <script src="./js/firebase-init.js?v=custom"></script>
 
     <!-- App Logic -->
-    <script src="./js/script.js?v=1.1.2" async></script>
+    <script src="./js/script.js?v=1.2.0" async></script>
 </body>
 
 </html>

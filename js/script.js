@@ -7,6 +7,84 @@ if ('serviceWorker' in navigator) {
     });
 }
 
+// --- カスタムポップアップ関数 ---
+function showPopup(message) {
+    const modal = document.getElementById('popup-modal');
+    const messageEl = document.getElementById('popup-message');
+    const closeBtn = document.getElementById('popup-close-btn');
+    
+    if (!modal || !messageEl || !closeBtn) {
+        // Fallback to native alert if elements don't exist
+        alert(message);
+        return;
+    }
+    
+    messageEl.innerText = message;
+    modal.classList.add('show');
+    
+    const closePopup = () => {
+        modal.classList.remove('show');
+        closeBtn.removeEventListener('click', closePopup);
+        modal.removeEventListener('click', handleBackdropClick);
+    };
+    
+    const handleBackdropClick = (e) => {
+        if (e.target === modal) {
+            closePopup();
+        }
+    };
+    
+    closeBtn.addEventListener('click', closePopup);
+    modal.addEventListener('click', handleBackdropClick);
+}
+
+// --- カスタム確認ダイアログ関数 ---
+function showConfirm(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirm-modal');
+        const messageEl = document.getElementById('confirm-message');
+        const okBtn = document.getElementById('confirm-ok-btn');
+        const cancelBtn = document.getElementById('confirm-cancel-btn');
+        
+        if (!modal || !messageEl || !okBtn || !cancelBtn) {
+            // Fallback to native confirm if elements don't exist
+            resolve(confirm(message));
+            return;
+        }
+        
+        messageEl.innerText = message;
+        modal.classList.add('show');
+        
+        const cleanup = () => {
+            modal.classList.remove('show');
+            okBtn.removeEventListener('click', handleOk);
+            cancelBtn.removeEventListener('click', handleCancel);
+            modal.removeEventListener('click', handleBackdropClick);
+        };
+        
+        const handleOk = () => {
+            cleanup();
+            resolve(true);
+        };
+        
+        const handleCancel = () => {
+            cleanup();
+            resolve(false);
+        };
+        
+        const handleBackdropClick = (e) => {
+            if (e.target === modal) {
+                cleanup();
+                resolve(false);
+            }
+        };
+        
+        okBtn.addEventListener('click', handleOk);
+        cancelBtn.addEventListener('click', handleCancel);
+        modal.addEventListener('click', handleBackdropClick);
+    });
+}
+
 // --- アプリ本体のロジック ---
 const subjectList = ["選択してください", "数学", "数I", "数A", "数II", "数B", "数C", "理科", "生物基礎", "物理基礎", "化学基礎", "生物", "化学", "英語", "英コミュ", "論評", "CS", "その他"];
 const mathSubjects = ["数学", "数I", "数A", "数II", "数B", "数C"];
@@ -35,23 +113,20 @@ let isLoading = false; // Flag to prevent auto-save during initial load
 
 // デフォルトの日付を今日に設定 & Auth監視
 window.onload = () => {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const dateInputElement = document.getElementById('report-date');
+    if (dateInputElement) {
+        dateInputElement.value = today;
+    }
 
     // Auth State Listener
     auth.onAuthStateChanged(user => {
         currentUser = user;
         updateAuthUI(user);
         if (user) {
-            // Logged In: 
-            // 1. Delete Local Data (Strict Rule) - *Only if not already cleared?* // The requirement says "Data is deleted when YOU LOG IN". 
-            // Since onAuthStateChanged fires on reload too, we should be careful NOT to wipe session data if we are already logged in.
-            // However, the rule "Delete local data when logged in" implies local storage should be CLEAN when in logged-in mode.
-            // So, simply wiping it is correct to ensure no local data persists.
-            localStorage.removeItem('studyReportAllData'); 
-            
-            // 2. Load from Firestore
-            loadData();
+            // Logged In: Perform bidirectional sync
+            syncDataOnLogin();
         } else {
             // Guest Mode: Load from Local Storage
             loadData();
@@ -114,54 +189,37 @@ function updateAuthUI(user) {
     }
 }
 
-function login() {
+async function login() {
     // Warning before login
-    if (confirm("ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？")) {
+    const confirmed = await showConfirm("ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？");
+    if (confirmed) {
         auth.signInWithPopup(provider).then(() => {
             // Successful login will trigger onAuthStateChanged
             // which handles the data wiping.
         }).catch(err => {
             console.error("Login failed", err);
-            alert("ログインに失敗しました");
+            showPopup("ログインに失敗しました");
         });
     }
 }
 
-function logout() {
-    if(confirm("ログアウトしますか？")) {
+async function logout() {
+    const confirmed = await showConfirm("ログアウトしますか？");
+    if (confirmed) {
         auth.signOut().then(() => {
             // Logout successful. onAuthStateChanged handles UI switch.
-            // Requirement says "Ensure displayed data is not cleared".
-            // Since we switch to loadData() which loads from LocalStorage (empty), the screen might clear.
-            // To prevent screen clearing, we might need to *save* current memory state to local? 
-            // OR just let it clear because the user is switching context.
-            // Re-reading history: "When logout... ensure displayed data is not cleared".
-            // This suggests copying current state to local storage OR just not reloading immediately.
-            // But for this specific "Strict Delete" request, "Guest Mode = Local Storage".
-            // If we logout, we are Guest. If Firestore data is still on screen, it hasn't been saved to Local.
-            // If the user wants to keep working as Guest, we should probably save the current view to Local Storage?
-            // Let's implement a "Transfer to Local" on logout if we want to keep it?
-            // Actually, the prompt says "Local data is ON when NOT Logged In".
-            // If I logout, I am "Not Logged In". So I can use Local Storage.
-            // If I want to KEEP what was on screen, I should save it to Local Storage now.
-            
-            // For now, let's just reload to fresh state to avoid confusion, 
-            // unless user specifically asked to "Keep data on logout" in previous turn (Conversation 27d9...).
-            // "Ensure displayed data is not cleared from the screen" was a previous objective.
-            // So: Do NOT call loadData() immediately? 
-            // Let's just NOT call loadData() in the `else` block of onAuthStateChanged IF it was a logout action?
-            // But onAuthStateChanged fires automatically.
-            // Let's simpler approach: Copy current memory state to Local Storage on logout?
-            // Let's stick to the CURRENT request: "Local on only when guest. Login -> Delete Local."
-            // I will implement basic logout.
         });
     }
 }
 
 dateInput.addEventListener('change', () => {
+    // 日付変更前に保存タイマーをキャンセル（古いデータが新しい日付に保存されるのを防ぐ）
+    if (saveTimer) {
+        clearTimeout(saveTimer);
+        saveTimer = null;
+    }
     loadData();
-    // 日付変更時に結果表示をリセットしないと前の日の内容が残る場合があるので再生成
-    generateText(); 
+    // generateTextはloadData -> renderData -> addSubjectで呼ばれるため不要
 });
 
 function addSubject(initialData = null) {
@@ -192,7 +250,10 @@ function addSubject(initialData = null) {
         div.querySelector('.time-h').value = initialData.h;
         div.querySelector('.time-m').value = initialData.m;
     }
-    generateText();
+    // isLoading中はgenerateTextを呼ばない（保存が発生しない純粋な表示更新は後でまとめて行う）
+    if (!isLoading) {
+        generateText();
+    }
 }
 
 function toggleOtherInput(selectElement) {
@@ -209,6 +270,62 @@ function toggleOtherInput(selectElement) {
 function removeRow(btn) {
     btn.parentElement.remove();
     generateText();
+}
+
+// 画面表示のみ更新（保存処理なし）- データロード時に使用
+function updateDisplay() {
+    const rows = document.querySelectorAll('.subject-row');
+    let totalMinutes = 0, bodyContent = "", displayGroups = new Set();
+    let validSubjectCount = 0;
+
+    rows.forEach(row => {
+        const selectValue = row.querySelector('.subject-select').value;
+        const otherValue = row.querySelector('.other-subject-input').value;
+        const text = row.querySelector('.subject-text').value;
+        const h = parseInt(row.querySelector('.time-h').value) || 0;
+        const m = parseInt(row.querySelector('.time-m').value) || 0;
+
+        if (selectValue === "") return;
+
+        validSubjectCount++;
+        let subjectDisplayName = (selectValue === "その他") ? (otherValue || "その他") : selectValue;
+        totalMinutes += (h * 60) + m;
+
+        if (mathSubjects.includes(selectValue)) displayGroups.add("数学");
+        else if (scienceSubjects.includes(selectValue)) displayGroups.add("理科");
+        else if (englishSubjects.includes(selectValue)) displayGroups.add("英語");
+        else displayGroups.add(subjectDisplayName);
+
+        let timeStr = "";
+        if (h > 0 && m > 0) timeStr = `${h}時間${m}分`;
+        else if (h > 0 && m === 0) timeStr = `${h}時間`;
+        else if (h === 0 && m > 0) timeStr = `${m}分`;
+        else timeStr = `0分`;
+
+        bodyContent += `\n${subjectDisplayName}\n${text}\n勉強時間 ${timeStr}\n`;
+    });
+
+    const totalH = Math.floor(totalMinutes / 60);
+    const totalM = totalMinutes % 60;
+    const globalComment = globalCommentInput.value;
+
+    let header = (displayGroups.size > 0) ? `今日は${Array.from(displayGroups).join('と')}をやりました\n` : `今日の学習報告\n`;
+    let finalText = header + bodyContent;
+
+    if (validSubjectCount >= 2 && totalMinutes > 0) {
+        let totalTimeStr = "";
+        if (totalH > 0 && totalM > 0) totalTimeStr = `${totalH}時間${totalM}分`;
+        else if (totalH > 0 && totalM === 0) totalTimeStr = `${totalH}時間`;
+        else totalTimeStr = `${totalM}分`;
+        finalText += `\n合計勉強時間 ${totalTimeStr}\n`;
+    }
+
+    if (globalComment.trim() !== "") {
+        finalText += `\n\n${globalComment}`;
+    }
+
+    screenTotal.innerText = `合計: ${totalH}時間 ${totalM}分`;
+    outputText.value = finalText;
 }
 
 function generateText() {
@@ -256,7 +373,10 @@ function generateText() {
 
     // 2教科以上かつ合計が0より大きい場合のみ合計時間を表示 (ヘッダーと重複するが本文用)
     if (validSubjectCount >= 2 && totalMinutes > 0) {
-        let totalTimeStr = (totalM === 0) ? `${totalH}時間` : `${totalH}時間${totalM}分`;
+        let totalTimeStr = "";
+        if (totalH > 0 && totalM > 0) totalTimeStr = `${totalH}時間${totalM}分`;
+        else if (totalH > 0 && totalM === 0) totalTimeStr = `${totalH}時間`;
+        else totalTimeStr = `${totalM}分`;
         // 【修正箇所】先頭に \n を追加して改行を入れています
         finalText += `\n合計勉強時間 ${totalTimeStr}\n`;
     }
@@ -282,15 +402,82 @@ function performSave(dateKey, subjects, comment) {
     isSaving = true;
     saveTimer = null;
     
+    // 変更内容を検出してログに記録
+    const changeDetail = detectChanges(dateKey, subjects, comment);
+    
     if (currentUser) {
-        saveToFirestore(dateKey, subjects, comment);
+        saveToFirestoreWithLog(dateKey, subjects, comment, changeDetail);
     } else {
-        saveToLocalStorage(dateKey, subjects, comment);
+        saveToLocalStorageWithLog(dateKey, subjects, comment, changeDetail);
     }
 }
 
+// 変更内容を検出する関数
+function detectChanges(dateKey, newSubjects, newComment) {
+    let oldData = null;
+    
+    if (currentUser) {
+        // クラウドの場合は直前のキャッシュから取得（ない場合は新規扱い）
+        oldData = window._lastLoadedData || null;
+    } else {
+        // ローカルの場合
+        const allData = getAllData();
+        oldData = allData[dateKey] || null;
+    }
+    
+    if (!oldData) {
+        return '新規データを作成';
+    }
+    
+    const changes = [];
+    const oldSubjects = oldData.subjects || [];
+    const oldComment = oldData.comment || '';
+    
+    // 教科の変更を検出
+    const maxLen = Math.max(newSubjects.length, oldSubjects.length);
+    for (let i = 0; i < maxLen; i++) {
+        const newSub = newSubjects[i];
+        const oldSub = oldSubjects[i];
+        
+        if (!oldSub && newSub && newSub.select) {
+            // 新規追加
+            const subjectName = newSub.select === 'その他' ? (newSub.other || 'その他') : newSub.select;
+            changes.push(`${subjectName}を追加`);
+        } else if (oldSub && !newSub) {
+            // 削除
+            const subjectName = oldSub.select === 'その他' ? (oldSub.other || 'その他') : oldSub.select;
+            changes.push(`${subjectName}を削除`);
+        } else if (oldSub && newSub) {
+            // 変更を検出
+            const oldName = oldSub.select === 'その他' ? (oldSub.other || 'その他') : oldSub.select;
+            const newName = newSub.select === 'その他' ? (newSub.other || 'その他') : newSub.select;
+            
+            if (oldSub.select !== newSub.select || oldSub.other !== newSub.other) {
+                changes.push(`教科を「${oldName}」→「${newName}」に変更`);
+            } else if (oldSub.text !== newSub.text) {
+                changes.push(`${newName}: 内容を編集`);
+            } else if (oldSub.h !== newSub.h || oldSub.m !== newSub.m) {
+                changes.push(`${newName}: 時間を変更`);
+            }
+        }
+    }
+    
+    // コメントの変更を検出
+    if (oldComment !== newComment) {
+        if (!oldComment && newComment) {
+            changes.push('コメントを追加');
+        } else if (oldComment && !newComment) {
+            changes.push('コメントを削除');
+        } else {
+            changes.push('コメントを編集');
+        }
+    }
+    
+    return changes.length > 0 ? changes.join(', ') : '軽微な変更';
+}
+
 // ------ Firestore Saving ------
-function saveToFirestore(dateKey, subjects, comment) {
+function saveToFirestoreWithLog(dateKey, subjects, comment, changeDetail) {
     if (!currentUser) {
         isSaving = false;
         return;
@@ -305,6 +492,12 @@ function saveToFirestore(dateKey, subjects, comment) {
         console.log("Saved to Firestore");
         isSaving = false;
         updateSaveStatus('saved');
+        
+        // 変更詳細をログに記録
+        addSyncLog('edit', dateKey, changeDetail);
+        
+        // 現在のデータをキャッシュ
+        window._lastLoadedData = { subjects, comment };
     })
     .catch(err => {
         console.error("Error saving", err);
@@ -332,13 +525,20 @@ function getAllData() {
     }
 }
 
-function saveToLocalStorage(dateKey, subjects, comment) {
+function saveToLocalStorageWithLog(dateKey, subjects, comment, changeDetail) {
     try {
         const allData = getAllData();
-        allData[dateKey] = { subjects: subjects, comment: comment };
+        allData[dateKey] = { 
+            subjects: subjects, 
+            comment: comment,
+            updatedAt: Date.now()  // ミリ秒タイムスタンプ
+        };
         localStorage.setItem('studyReportAllData', JSON.stringify(allData));
+        
+        // 変更詳細をログに記録
+        addSyncLog('edit', dateKey, changeDetail);
+        
         setTimeout(() => {
-            // Simulate async for consistency or just direct
             isSaving = false;
             updateSaveStatus('saved');
         }, 300);
@@ -353,10 +553,18 @@ function loadData() {
     const dateKey = dateInput.value;
     if (!dateKey) return;
 
+    // ロード開始時にisLoadingをセット（レースコンディション防止）
+    isLoading = true;
+
     if (currentUser) {
         // Load from Firestore
+        const requestedDateKey = dateKey; // クロージャでキャプチャ
         db.collection('users').doc(currentUser.uid).collection('reports').doc(dateKey).get()
         .then(doc => {
+            // ロード中に日付が変わった場合は無視
+            if (dateInput.value !== requestedDateKey) {
+                return;
+            }
             if (doc.exists) {
                 const data = doc.data();
                 renderData(data);
@@ -365,7 +573,9 @@ function loadData() {
             }
         }).catch(err => {
             console.error("Error loading", err);
-            renderData(null);
+            if (dateInput.value === requestedDateKey) {
+                renderData(null);
+            }
         });
     } else {
         // Load from LocalStorage
@@ -378,6 +588,17 @@ function loadData() {
 function renderData(dayData) {
     isLoading = true; // Start loading mode
     container.innerHTML = '';
+    
+    // 変更検出用にロードしたデータをキャッシュ
+    if (dayData) {
+        window._lastLoadedData = {
+            subjects: dayData.subjects || [],
+            comment: dayData.comment || ''
+        };
+    } else {
+        window._lastLoadedData = null;
+    }
+    
     if (dayData) {
         globalCommentInput.value = dayData.comment || "";
         if (dayData.subjects && dayData.subjects.length > 0) {
@@ -390,7 +611,10 @@ function renderData(dayData) {
         globalCommentInput.value = "";
         addSubject();
     }
-    // generateTextはaddSubject内で呼ばれるため不要 (ただし初回ロード時は合計計算のため呼んでもいいが、addSubjectが呼ぶのでOK)
+    
+    // データロード完了後、表示を更新（保存はしない）
+    updateDisplay();
+    
     isLoading = false; // End loading mode
     updateSaveStatus('saved'); // Initial state is "saved" (sync with DB)
 }
@@ -411,7 +635,7 @@ function migrateOldDataIfNeeded() {
             if (!allData[today]) {
                 allData[today] = oldData;
                 localStorage.setItem('studyReportAllData', JSON.stringify(allData));
-                alert("古いデータを本日のデータとして復元しました。");
+                showPopup("古いデータを本日のデータとして復元しました。");
             }
             
             // 旧データ削除 (あるいはバックアップとして残すか？今回は削除)
@@ -427,8 +651,9 @@ function migrateOldDataIfNeeded() {
     }
 }
 
-function resetData() {
-    if (confirm("表示中の日付の入力内容をすべて消去しますか？")) {
+async function resetData() {
+    const confirmed = await showConfirm("表示中の日付の入力内容をすべて消去しますか？");
+    if (confirmed) {
         const dateKey = dateInput.value;
         const allData = getAllData();
         
@@ -451,17 +676,21 @@ function resetData() {
 }
 
 function resetUI() {
+    isLoading = true; // 保存を防止
     container.innerHTML = '';
     globalCommentInput.value = '';
-    addSubject(); 
-    generateText(); 
+    addSubject();
+    isLoading = false;
+    // addSubjectはisLoading=falseの後に呼ばれるのでgenerateTextが実行される
+    // 明示的に呼び出す
+    generateText();
 }
 
 function copyToClipboard() {
     const copyTarget = document.getElementById("output-text");
     copyTarget.select();
     document.execCommand("copy");
-    alert("コピーしました");
+    showPopup("コピーしました");
 }
 
 // ------ エクスポート & インポート ------
@@ -481,14 +710,14 @@ function exportData() {
         })
         .catch(err => {
             console.error("Export failed", err);
-            alert("クラウドからのデータ取得に失敗しました。");
+            showPopup("クラウドからのデータ取得に失敗しました。");
             updateSaveStatus('error');
         });
     } else {
         // Local Export
         const allData = localStorage.getItem('studyReportAllData');
         if (!allData) {
-            alert("保存されたデータがありません。");
+            showPopup("保存されたデータがありません。");
             return;
         }
         // Validate JSON if possible, but it's raw string, so just pass parse/stringify check or direct
@@ -496,7 +725,7 @@ function exportData() {
             const parsed = JSON.parse(allData);
             downloadJSON(parsed, `study_report_local_backup_${new Date().toISOString().split('T')[0]}.json`);
         } catch(e) {
-            alert("データが破損している可能性があります。");
+            showPopup("データが破損している可能性があります。");
         }
     }
 }
@@ -519,13 +748,14 @@ function importData(input) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const json = e.target.result;
             const data = JSON.parse(json);
             if (typeof data !== 'object') throw new Error("Invalid format");
 
-            if (confirm("現在のデータを上書きして取り込みますか？")) {
+            const confirmed = await showConfirm("現在のデータを上書きして取り込みますか？");
+            if (confirmed) {
                 if (currentUser) {
                     // Cloud Import
                     importToCloud(data);
@@ -533,11 +763,11 @@ function importData(input) {
                     // Local Import
                     localStorage.setItem('studyReportAllData', JSON.stringify(data));
                     loadData(); // Reload current view
-                    alert("データの取り込みが完了しました。");
+                    showPopup("データの取り込みが完了しました。");
                 }
             }
         } catch (err) {
-            alert("ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。");
+            showPopup("ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。");
             console.error(err);
         }
         // Reset input
@@ -574,11 +804,267 @@ function importToCloud(dataObj) {
         console.log("All data imported to cloud");
         updateSaveStatus('saved');
         loadData(); // Reload current view
-        alert("クラウドへのデータの取り込みが完了しました。");
+        showPopup("クラウドへのデータの取り込みが完了しました。");
     })
     .catch(err => {
         console.error("Cloud import failed", err);
-        alert("一部のデータの取り込みに失敗しました。コンソールを確認してください。");
+        showPopup("一部のデータの取り込みに失敗しました。コンソールを確認してください。");
         updateSaveStatus('error');
     });
+}
+
+// ------ 双方向同期機能 ------
+
+async function syncDataOnLogin() {
+    updateSaveStatus('saving');
+    
+    // 1. ローカルデータを取得
+    const localData = getAllData();
+    
+    // 2. ローカルデータが空なら同期不要、クラウドから読み込むだけ
+    if (Object.keys(localData).length === 0) {
+        loadData();
+        return;
+    }
+    
+    try {
+        // 3. クラウドの全データを取得
+        const cloudData = await fetchAllCloudData();
+        
+        // 4. 日付ごとにマージ（新しい方を採用）
+        const { toUpload, toDownload } = compareAndMerge(localData, cloudData);
+        
+        // 5. ローカル → クラウドへアップロード
+        if (Object.keys(toUpload).length > 0) {
+            await uploadToCloud(toUpload);
+        }
+        
+        // 6. マージ完了後、ローカルストレージをクリア
+        localStorage.removeItem('studyReportAllData');
+        
+        // 7. 同期完了ログ
+        if (Object.keys(toUpload).length > 0 || Object.keys(toDownload).length > 0) {
+            addSyncLog('sync', '', `同期完了: ${Object.keys(toUpload).length}件アップロード, ${Object.keys(toDownload).length}件はクラウドを優先`);
+        }
+        
+        // 8. 現在の日付のデータを読み込み
+        loadData();
+        
+    } catch (err) {
+        console.error("Sync failed", err);
+        updateSaveStatus('error');
+        showPopup("同期に失敗しました。クラウドからデータを読み込みます。");
+        localStorage.removeItem('studyReportAllData');
+        loadData();
+    }
+}
+
+async function fetchAllCloudData() {
+    if (!currentUser) return {};
+    
+    const snapshot = await db.collection('users').doc(currentUser.uid).collection('reports').get();
+    const cloudData = {};
+    snapshot.forEach(doc => {
+        cloudData[doc.id] = doc.data();
+    });
+    return cloudData;
+}
+
+function compareAndMerge(localData, cloudData) {
+    const toUpload = {};
+    const toDownload = {};
+    
+    // すべての日付キーを取得
+    const allDates = new Set([...Object.keys(localData), ...Object.keys(cloudData)]);
+    
+    allDates.forEach(dateKey => {
+        const local = localData[dateKey];
+        const cloud = cloudData[dateKey];
+        
+        if (local && !cloud) {
+            // ローカルにのみ存在 → アップロード
+            toUpload[dateKey] = local;
+            addSyncLog('upload', dateKey, 'ローカルからクラウドへアップロード');
+        } else if (!local && cloud) {
+            // クラウドにのみ存在 → ダウンロード（ログイン後はクラウドから読み込むので何もしない）
+            toDownload[dateKey] = cloud;
+        } else if (local && cloud) {
+            // 両方に存在 → タイムスタンプ比較
+            const localTime = local.updatedAt || 0;
+            // Firestoreのタイムスタンプをミリ秒に変換
+            let cloudTime = 0;
+            if (cloud.updatedAt) {
+                if (cloud.updatedAt.toMillis) {
+                    cloudTime = cloud.updatedAt.toMillis();
+                } else if (typeof cloud.updatedAt === 'number') {
+                    cloudTime = cloud.updatedAt;
+                }
+            }
+            
+            if (localTime > cloudTime) {
+                // ローカルが新しい → アップロード
+                toUpload[dateKey] = local;
+                addSyncLog('upload', dateKey, 'ローカルが新しいためアップロード');
+            } else {
+                // クラウドが新しいまたは同じ → クラウドを優先
+                toDownload[dateKey] = cloud;
+            }
+        }
+    });
+    
+    return { toUpload, toDownload };
+}
+
+async function uploadToCloud(dataToUpload) {
+    if (!currentUser) return;
+    
+    const reportsRef = db.collection('users').doc(currentUser.uid).collection('reports');
+    const promises = [];
+    
+    Object.keys(dataToUpload).forEach(dateKey => {
+        const data = dataToUpload[dateKey];
+        promises.push(
+            reportsRef.doc(dateKey).set({
+                subjects: data.subjects,
+                comment: data.comment,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+        );
+    });
+    
+    await Promise.all(promises);
+}
+
+// ------ 操作ログ機能 ------
+
+function getSyncLogs() {
+    const logsJson = localStorage.getItem('studyReportSyncLogs');
+    if (!logsJson) return [];
+    try {
+        return JSON.parse(logsJson);
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveSyncLogs(logs) {
+    localStorage.setItem('studyReportSyncLogs', JSON.stringify(logs));
+}
+
+function addSyncLog(action, dateKey, detail) {
+    const now = new Date();
+    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const logData = {
+        timestamp: timestamp,
+        action: action,
+        date: dateKey || '',
+        detail: detail || '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp() // For cloud sorting
+    };
+
+    if (currentUser) {
+        // Cloud Log
+        db.collection('users').doc(currentUser.uid).collection('logs').add(logData)
+        .then(() => console.log('Log added to cloud'))
+        .catch(err => console.error('Failed to add cloud log', err));
+    } else {
+        // Local Log
+        const logs = getSyncLogs();
+        // createdAtはローカル保存時は不要または別形式になるため、ここでは除外または無視
+        delete logData.createdAt; 
+        logs.unshift(logData);
+        saveSyncLogs(logs);
+    }
+}
+
+async function showSyncLog() {
+    const modal = document.getElementById('sync-log-modal');
+    const logList = document.getElementById('sync-log-list');
+    
+    // Clear current list and show loading if needed
+    logList.innerHTML = '<div class="sync-log-empty">読み込み中...</div>';
+    modal.classList.add('show');
+
+    let logs = [];
+
+    if (currentUser) {
+        // Fetch from Cloud
+        try {
+            const snapshot = await db.collection('users').doc(currentUser.uid).collection('logs')
+                                     .orderBy('createdAt', 'desc')
+                                     .limit(50)
+                                     .get();
+            
+            logs = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    timestamp: data.timestamp, // Display string
+                    action: data.action,
+                    date: data.date,
+                    detail: data.detail
+                };
+            });
+        } catch (err) {
+            console.error("Failed to fetch logs", err);
+            logList.innerHTML = '<div class="sync-log-empty">ログの取得に失敗しました</div>';
+            return;
+        }
+    } else {
+        // Fetch from Local
+        logs = getSyncLogs();
+    }
+    
+    if (logs.length === 0) {
+        logList.innerHTML = '<div class="sync-log-empty">操作ログはありません</div>';
+    } else {
+        logList.innerHTML = logs.map(log => {
+            const actionLabel = log.action === 'upload' ? 'アップロード' :
+                               log.action === 'download' ? 'ダウンロード' :
+                               log.action === 'edit' ? '編集' :
+                               log.action === 'sync' ? '同期' : log.action;
+            return `
+                <div class="sync-log-item">
+                    <span class="log-time">${log.timestamp}</span>
+                    <span class="log-action ${log.action}">[${actionLabel}]</span>
+                    ${log.date ? `<span class="log-date">${log.date}</span>` : ''}
+                    <div class="log-detail">${log.detail}</div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+
+function closeSyncLogModal() {
+    const modal = document.getElementById('sync-log-modal');
+    modal.classList.remove('show');
+}
+
+async function clearSyncLog() {
+    const confirmed = await showConfirm("すべての操作ログを削除しますか？");
+    if (confirmed) {
+        if (currentUser) {
+            // Clear Cloud Logs
+            try {
+                const collectionRef = db.collection('users').doc(currentUser.uid).collection('logs');
+                const snapshot = await collectionRef.get();
+                const batch = db.batch();
+                
+                snapshot.docs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                
+                await batch.commit();
+                showPopup("操作ログを削除しました");
+                showSyncLog(); // Reload
+            } catch (err) {
+                console.error("Failed to delete logs", err);
+                showPopup("ログの削除に失敗しました");
+            }
+        } else {
+            // Clear Local Logs
+            localStorage.removeItem('studyReportSyncLogs');
+            showSyncLog(); // Reload
+            showPopup("操作ログを削除しました");
+        }
+    }
 }
