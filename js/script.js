@@ -695,43 +695,63 @@ function copyToClipboard() {
 
 // ------ エクスポート & インポート ------
 
-function exportData() {
-    if (currentUser) {
-        // Cloud Export
-        updateSaveStatus('saving'); // Use visual feedback
-        db.collection('users').doc(currentUser.uid).collection('reports').get()
-        .then(querySnapshot => {
-            let cloudData = {};
-            querySnapshot.forEach(doc => {
-                cloudData[doc.id] = doc.data();
+// ------ エクスポート & インポート ------
+
+async function exportData() {
+    updateSaveStatus('saving');
+    try {
+        let reportsData = {};
+        let logsData = [];
+
+        if (currentUser) {
+            // Cloud Export
+            const reportsSnapshot = await db.collection('users').doc(currentUser.uid).collection('reports').get();
+            reportsSnapshot.forEach(doc => {
+                reportsData[doc.id] = doc.data();
             });
-            downloadJSON(cloudData, `study_report_cloud_backup_${new Date().toISOString().split('T')[0]}.json`);
-            updateSaveStatus('saved');
-        })
-        .catch(err => {
-            console.error("Export failed", err);
-            showPopup("クラウドからのデータ取得に失敗しました。");
-            updateSaveStatus('error');
-        });
-    } else {
-        // Local Export
-        const allData = localStorage.getItem('studyReportAllData');
-        if (!allData) {
-            showPopup("保存されたデータがありません。");
-            return;
+
+            const logsSnapshot = await db.collection('users').doc(currentUser.uid).collection('logs').get();
+            logsData = logsSnapshot.docs.map(doc => {
+                const d = doc.data();
+                // 復元時にタイムスタンプ等を正しく扱えるように整形
+                return {
+                    ...d,
+                    // Firestore Timestamp to easy JSON, though JSON.stringify handles basic objects, 
+                    // importing back needs care if we want serverTimestamp again.
+                    // For export, we just dump what we have.
+                    // createdAt might be a complex object, simplify if needed or trust restore logic.
+                    createdAt: d.createdAt ? (d.createdAt.toMillis ? d.createdAt.toMillis() : d.createdAt) : null
+                };
+            });
+        } else {
+            // Local Export
+            const localReports = localStorage.getItem('studyReportAllData');
+            if (localReports) {
+                reportsData = JSON.parse(localReports);
+            }
+            logsData = getSyncLogs();
         }
-        // Validate JSON if possible, but it's raw string, so just pass parse/stringify check or direct
-        try {
-            const parsed = JSON.parse(allData);
-            downloadJSON(parsed, `study_report_local_backup_${new Date().toISOString().split('T')[0]}.json`);
-        } catch(e) {
-            showPopup("データが破損している可能性があります。");
-        }
+
+        const exportObj = {
+            version: "1.0",
+            exportedAt: new Date().toISOString(),
+            data: {
+                reports: reportsData,
+                logs: logsData
+            }
+        };
+
+        downloadJSON(exportObj, `study_report_backup_${new Date().toISOString().split('T')[0]}.rep`);
+        updateSaveStatus('saved');
+    } catch (err) {
+        console.error("Export failed", err);
+        showPopup("データ書き出しに失敗しました。");
+        updateSaveStatus('error');
     }
 }
 
 function downloadJSON(dataObj, filename) {
-    const jsonStr = JSON.stringify(dataObj, null, 2); // Prettier format
+    const jsonStr = JSON.stringify(dataObj, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -751,24 +771,33 @@ function importData(input) {
     reader.onload = async function(e) {
         try {
             const json = e.target.result;
-            const data = JSON.parse(json);
-            if (typeof data !== 'object') throw new Error("Invalid format");
+            const parsed = JSON.parse(json);
 
-            const confirmed = await showConfirm("現在のデータを上書きして取り込みますか？");
+            // Strict Validation
+            if (!parsed.data || !parsed.data.reports || !Array.isArray(parsed.data.logs)) {
+                throw new Error("Invalid format");
+            }
+
+            const confirmed = await showConfirm("現在のデータを上書きして取り込みますか？\n(独自の形式 .rep のファイルのみ対応しています)");
             if (confirmed) {
                 if (currentUser) {
-                    // Cloud Import
-                    importToCloud(data);
+                    await importToCloud(parsed.data);
                 } else {
                     // Local Import
-                    localStorage.setItem('studyReportAllData', JSON.stringify(data));
+                    localStorage.setItem('studyReportAllData', JSON.stringify(parsed.data.reports));
+                    saveSyncLogs(parsed.data.logs);
+                    
                     loadData(); // Reload current view
                     showPopup("データの取り込みが完了しました。");
                 }
             }
         } catch (err) {
-            showPopup("ファイルの読み込みに失敗しました。正しいJSONファイルか確認してください。");
             console.error(err);
+            if (err.message === "Invalid format") {
+                showPopup("無効なファイル形式です。\n新しい .rep 形式のファイルのみ読み込めます。");
+            } else {
+                showPopup("ファイルの読み込みに失敗しました。");
+            }
         }
         // Reset input
         input.value = '';
@@ -776,41 +805,94 @@ function importData(input) {
     reader.readAsText(file);
 }
 
-function importToCloud(dataObj) {
+async function importToCloud(dataContainer) {
     updateSaveStatus('saving');
-    const batchPromises = [];
-    const reportsRef = db.collection('users').doc(currentUser.uid).collection('reports');
-
-    // Firestore batch (limit 500) or parallel set.
-    // For simplicity with unknown size, we'll use parallel set calls.
-    // If concerned about rate limits, we could batch, but standard usage is likely fine.
+    // reports and logs
+    const reports = dataContainer.reports;
+    const logs = dataContainer.logs;
     
-    Object.keys(dataObj).forEach(dateKey => {
-        const docData = dataObj[dateKey];
-        // Ensure updatedAt is set effectively or just use serverTimestamp if we want to "touch" them.
-        // Assuming we keep original content exactly.
-        // We might want to add updatedAt: firebase.firestore.FieldValue.serverTimestamp() if missing
-        if (!docData.updatedAt) {
-            docData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+    const reportsRef = db.collection('users').doc(currentUser.uid).collection('reports');
+    const logsRef = db.collection('users').doc(currentUser.uid).collection('logs');
+
+    try {
+        const batchSize = 500;
+        let batch = db.batch();
+        let count = 0;
+
+        // Import Reports
+        for (const dateKey of Object.keys(reports)) {
+            const docData = reports[dateKey];
+            if (!docData.updatedAt) {
+                docData.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+            }
+            batch.set(reportsRef.doc(dateKey), docData);
+            count++;
+            if (count >= batchSize) {
+                await batch.commit();
+                batch = db.batch();
+                count = 0;
+            }
         }
         
-        batchPromises.push(
-            reportsRef.doc(dateKey).set(docData)
-        );
-    });
+        // Import Logs (Append)
+        for (const log of logs) {
+            // Restore timestamp for server
+            // If it was exported as millis, convert back to valid timestamp or keep as number
+            // Firestore log sort relies on createdAt (serverTimestamp).
+            // We'll generate a new serverTimestamp for sorting order in new DB, 
+            // OR try to respect original createdAt if we can.
+            // For now, let's treat them as new entries or just dump data.
+            // To avoid complexity, just add() them.
+            
+            const newLog = { ...log };
+            // Override createdAt so they appear "recently imported" OR keep original?
+            // User likely wants to see history.
+            // But 'createdAt' usage in showSyncLog is for sorting.
+            // Let's use the original 'timestamp' string for display, 
+            // and use serverTimestamp() for physical sort order if we want them at top?
+            // No, we want to maintain history.
+            // If we have createdAt from export (millis), use it?
+            // Firestore data from JSON will be just numbers.
+            // Let's just strip createdAt and let Firestore assign new one? 
+            // NO, that makes old logs appear new.
+            // Let's rely on 'timestamp' string which is YYYY-MM-DD HH:mm.
+            // But showSyncLog sorts by 'createdAt'.
+            // Simple fix: delete createdAt and let Firestore assign new one (effectively "imported just now"),
+            // BUT this loses the chronological sort if multiple logs imported at once.
+            // Better: use the numeric value if available.
+            if (newLog.createdAt && typeof newLog.createdAt === 'number') {
+                 // Convert millis back to date? Firestore can take Date objects.
+                 newLog.createdAt = new Date(newLog.createdAt); 
+            } else {
+                 newLog.createdAt = new Date(); // Fallback
+            }
+            
+            // Generate ID to prevent full duplication? add() auto-generates.
+            // Just use add.
+            const ref = logsRef.doc(); 
+            batch.set(ref, newLog);
+            count++;
+            if (count >= batchSize) {
+                await batch.commit();
+                batch = db.batch();
+                count = 0;
+            }
+        }
 
-    Promise.all(batchPromises)
-    .then(() => {
+        if (count > 0) {
+            await batch.commit();
+        }
+
         console.log("All data imported to cloud");
         updateSaveStatus('saved');
-        loadData(); // Reload current view
+        loadData(); 
         showPopup("クラウドへのデータの取り込みが完了しました。");
-    })
-    .catch(err => {
+
+    } catch (err) {
         console.error("Cloud import failed", err);
-        showPopup("一部のデータの取り込みに失敗しました。コンソールを確認してください。");
+        showPopup("一部のデータの取り込みに失敗しました。");
         updateSaveStatus('error');
-    });
+    }
 }
 
 // ------ 双方向同期機能 ------

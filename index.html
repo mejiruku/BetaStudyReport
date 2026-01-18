@@ -52,7 +52,7 @@
         <div class="backup-controls">
             <button onclick="exportData()" class="export-btn">データ書き出し (保存)</button>
             <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み (復元)</button>
-            <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json">
+            <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json,.rep">
             <button onclick="showSyncLog()" class="log-btn">操作ログ</button>
         </div>
     </div>
