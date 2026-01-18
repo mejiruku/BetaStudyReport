@@ -841,7 +841,7 @@ function importData(input) {
                 throw new Error("Invalid format");
             }
 
-            const confirmed = await showConfirm("現在のデータを上書きして取り込みますか？\n(独自の形式 .rep のファイルのみ対応しています)");
+            const confirmed = await showConfirm("現在のデータを上書きして取り込みますか？\n(.rep のファイルのみ対応しています)");
             if (confirmed) {
                 if (currentUser) {
                     await importToCloud(parsed.data);
