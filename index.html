@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="1.4.0">
-    <link rel="stylesheet" href="./css/style.css?v=1.2.0">
+    <meta name="data-app-version" content="1.4.4">
+    <link rel="stylesheet" href="./css/style.css?v=1.2.4">
     <link rel="manifest" href="./js/manifest.json?v=1.1.0">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -20,6 +20,7 @@
                 <span id="save-status" class="save-status"></span>
             </div>
             <div id="auth-container" class="auth-container">
+                <button id="settings-btn" onclick="openSettings()" class="settings-btn" title="設定">⚙️</button>
                 <img id="user-icon" src="" alt="" style="width: 28px; height: 28px; border-radius: 50%; display: none; object-fit: cover;">
                 <span id="user-display" style="font-size: 0.9em; display: none;"></span>
                 <button id="login-btn" onclick="login()" class="auth-btn login">Googleでログイン</button>
@@ -30,6 +31,7 @@
         <div class="date-section">
             <label for="report-date">日付: </label>
             <input type="date" id="report-date">
+            <button id="view-mode-btn" class="view-mode-toggle" onclick="toggleViewMode()">閲覧モード</button>
         </div>
 
         <div id="subjects-container"></div>
@@ -100,6 +102,45 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="popup-overlay">
+        <div class="popup-content settings-modal-content">
+            <h3 style="margin-top: 0; color: #006680;">⚙ 設定</h3>
+            <div class="settings-section">
+                <label for="special-code-input" style="font-weight: bold; display: block; margin-bottom: 8px;">特殊コード (HTML)</label>
+                <textarea id="special-code-input" class="special-code-textarea" placeholder="ここにHTMLコードを入力してください..."></textarea>
+                <p style="font-size: 0.85em; color: #666; margin-top: 5px;">※コピー後にこのHTMLが表示されます</p>
+                
+                <div style="margin-top: 15px;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">表示方法</label>
+                    <div style="display: flex; gap: 15px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="special-code-display" value="modal" checked style="margin-right: 5px;"> モーダルで表示
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="special-code-display" value="tab" style="margin-right: 5px;"> 新しいタブで表示
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="confirm-buttons">
+                <button onclick="closeSettings()" class="popup-btn cancel">キャンセル</button>
+                <button onclick="saveSettings()" class="popup-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Special Code Display Modal -->
+    <div id="special-code-modal" class="popup-overlay">
+        <div class="popup-content special-code-display-content">
+            <div class="special-code-header">
+                <span style="font-weight: bold; color: #006680;">コピーしました！</span>
+                <button onclick="closeSpecialCode()" class="special-code-close-btn">✕</button>
+            </div>
+            <iframe id="special-code-iframe" class="special-code-iframe" sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -109,7 +150,7 @@
     <script src="./js/firebase-init.js?v=custom"></script>
 
     <!-- App Logic -->
-    <script src="./js/script.js?v=1.2.0" async></script>
+    <script src="./js/script.js?v=1.2.4" async></script>
 </body>
 
 </html>

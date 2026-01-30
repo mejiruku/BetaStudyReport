@@ -93,9 +93,6 @@ h2 {
 }
 
 .remove-btn {
-  position: absolute;
-  top: 10px;
-  right: 10px;
   background: #ff4d4d;
   color: white;
   border: none;
@@ -571,8 +568,225 @@ textarea {
   .log-modal-content {
     max-height: 90vh;
   }
-  
+
   .sync-log-list {
     max-height: 50vh;
+  }
+}
+
+/* ====== 教科入れ替えボタン ====== */
+.row-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.move-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.move-btn {
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1;
+  transition: background-color 0.2s;
+}
+
+.move-btn:hover {
+  background: #bdbdbd;
+}
+
+.move-btn:active {
+  background: #9e9e9e;
+}
+
+/* ====== 閲覧モード切り替えボタン ====== */
+.view-mode-toggle {
+  margin-left: 15px;
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+}
+
+.view-mode-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+}
+
+.view-mode-toggle.active {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.view-mode-toggle.active:hover {
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+}
+
+/* ====== 閲覧モード時のスタイル ====== */
+.view-mode #subjects-container,
+.view-mode .controls,
+.view-mode .global-comment-section,
+.view-mode .backup-controls {
+  display: none;
+}
+
+.view-mode .result-area {
+  margin-top: 20px;
+  border-top: none;
+  padding-top: 0;
+}
+
+.view-mode .result-area h3 {
+  display: none;
+}
+
+.view-mode #output-text {
+  height: 400px;
+  font-size: 15px;
+  background-color: #fff;
+  border: 2px solid #2196f3;
+  border-radius: 8px;
+}
+
+.view-mode .total-display {
+  font-size: 1.4em;
+  margin-bottom: 15px;
+}
+
+.view-mode .copy-btn {
+  margin-top: 15px;
+  margin-bottom: 0;
+}
+
+@media (max-width: 480px) {
+  .row-controls {
+    position: static;
+    margin-bottom: 10px;
+    justify-content: flex-end;
+  }
+
+  .date-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .view-mode-toggle {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* ====== 設定ボタン ====== */
+.settings-btn {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.settings-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* ====== 設定モーダル ====== */
+.settings-modal-content {
+  max-width: 500px;
+  width: 90%;
+}
+
+.settings-section {
+  margin-bottom: 20px;
+}
+
+.special-code-textarea {
+  width: 100%;
+  height: 200px;
+  font-family: monospace;
+  font-size: 13px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+/* ====== 特殊コード表示モーダル ====== */
+.special-code-display-content {
+  max-width: 550px;
+  width: 95%;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.special-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #66bb6a, #81c784);
+  color: white;
+}
+
+.special-code-header span {
+  font-size: 1.3em;
+  font-weight: bold;
+  color: white;
+}
+
+.special-code-close-btn {
+  background: rgba(255,255,255,0.25);
+  border: none;
+  color: white;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.special-code-close-btn:hover {
+  background: rgba(255,255,255,0.4);
+}
+
+.special-code-iframe {
+  width: 100%;
+  height: 500px;
+  border: none;
+  background: white;
+}
+
+@media (max-width: 480px) {
+  .settings-modal-content {
+    max-width: none;
+  }
+  
+  .special-code-display-content {
+    max-width: none;
+  }
+  
+  .special-code-iframe {
+    height: 250px;
   }
 }
