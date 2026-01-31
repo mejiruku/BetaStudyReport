@@ -821,6 +821,8 @@ function renderData(dayData) {
   // すべてのテキストエリアの高さを調整
   document.querySelectorAll("textarea").forEach((textarea) => {
     autoResize(textarea);
+    // DOM描画完了後に確実にリサイズされるように遅延実行
+    setTimeout(() => autoResize(textarea), 0);
   });
 
   isLoading = false; // End loading mode
