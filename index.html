@@ -107,37 +107,16 @@
         <div class="popup-content settings-modal-content">
             <h3 style="margin-top: 0; color: #006680;">⚙ 設定</h3>
             <div class="settings-section">
-                <label for="special-code-input" style="font-weight: bold; display: block; margin-bottom: 8px;">特殊コード (HTML)</label>
-                <textarea id="special-code-input" class="special-code-textarea" placeholder="ここにHTMLコードを入力してください..."></textarea>
-                <p style="font-size: 0.85em; color: #666; margin-top: 5px;">※コピー後にこのHTMLが表示されます</p>
-                
-                <div style="margin-top: 15px;">
-                    <label style="font-weight: bold; display: block; margin-bottom: 5px;">表示方法</label>
-                    <div style="display: flex; gap: 15px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="radio" name="special-code-display" value="modal" checked style="margin-right: 5px;"> モーダルで表示
-                        </label>
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="radio" name="special-code-display" value="tab" style="margin-right: 5px;"> 新しいタブで表示
-                        </label>
-                    </div>
+                <div class="special-code-group">
+                    <label for="special-code-input" style="font-weight: bold; display: block; margin-bottom: 8px;">特殊コード (HTML)</label>
+                    <textarea id="special-code-input" class="special-code-textarea" placeholder="ここにHTMLコードを入力してください..."></textarea>
+                    <p style="font-size: 0.85em; color: #666; margin-top: 5px; margin-bottom: 0;">※コピー後にこのHTMLを含む新しいタブが開きます</p>
                 </div>
             </div>
             <div class="confirm-buttons">
                 <button onclick="closeSettings()" class="popup-btn cancel">キャンセル</button>
                 <button onclick="saveSettings()" class="popup-btn">保存</button>
             </div>
-        </div>
-    </div>
-
-    <!-- Special Code Display Modal -->
-    <div id="special-code-modal" class="popup-overlay">
-        <div class="popup-content special-code-display-content">
-            <div class="special-code-header">
-                <span style="font-weight: bold; color: #006680;">コピーしました！</span>
-                <button onclick="closeSpecialCode()" class="special-code-close-btn">✕</button>
-            </div>
-            <iframe id="special-code-iframe" class="special-code-iframe" sandbox="allow-forms allow-scripts allow-same-origin"></iframe>
         </div>
     </div>
 

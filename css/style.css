@@ -128,7 +128,9 @@ textarea {
 
 textarea {
   height: 80px;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
+  min-height: 80px;
 }
 
 /* その他入力欄 */
@@ -610,32 +612,29 @@ textarea {
 }
 
 /* ====== 閲覧モード切り替えボタン ====== */
+/* ====== 閲覧モード切り替えボタン ====== */
 .view-mode-toggle {
   margin-left: 15px;
-  background: linear-gradient(135deg, #2196f3, #1976d2);
+  background-color: #2196f3;
   color: white;
   border: none;
-  border-radius: 20px;
-  padding: 8px 18px;
+  border-radius: 4px;
+  padding: 6px 12px;
   font-size: 14px;
-  font-weight: bold;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+  transition: background-color 0.2s;
 }
 
 .view-mode-toggle:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+  background-color: #1976d2;
 }
 
 .view-mode-toggle.active {
-  background: linear-gradient(135deg, #4caf50, #388e3c);
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  background-color: #4caf50;
 }
 
 .view-mode-toggle.active:hover {
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  background-color: #388e3c;
 }
 
 /* ====== 閲覧モード時のスタイル ====== */
@@ -695,18 +694,24 @@ textarea {
 }
 
 /* ====== 設定ボタン ====== */
+/* ====== 設定ボタン ====== */
 .settings-btn {
-  background: transparent;
+  background-color: #e0e0e0;
   border: none;
-  font-size: 24px;
+  font-size: 16px; /* Reduced icon size to fit button text style if needed, or keep convenient size */
+  line-height: 1;
+  color: #333;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
   transition: background-color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .settings-btn:hover {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: #d5d5d5;
 }
 
 /* ====== 設定モーダル ====== */
@@ -721,72 +726,59 @@ textarea {
 
 .special-code-textarea {
   width: 100%;
-  height: 200px;
+  height: 150px; /* 少し高さを抑える */
   font-family: monospace;
-  font-size: 13px;
-  padding: 10px;
-  border: 1px solid #ccc;
+  font-size: 14px;
+  padding: 12px;
+  border: 1px solid #ddd;
   border-radius: 6px;
   resize: vertical;
   box-sizing: border-box;
+  transition: border-color 0.2s;
+  background-color: #fff;
 }
 
-/* ====== 特殊コード表示モーダル ====== */
-.special-code-display-content {
-  max-width: 550px;
-  width: 95%;
-  padding: 0;
-  overflow: hidden;
-  border-radius: 16px;
+.special-code-textarea:focus {
+  border-color: #2196f3;
+  outline: none;
 }
 
-.special-code-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 24px;
-  background: linear-gradient(135deg, #66bb6a, #81c784);
-  color: white;
+.special-code-group {
+  background-color: #f5f9fa; /* 薄い背景色 */
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
 }
 
-.special-code-header span {
-  font-size: 1.3em;
-  font-weight: bold;
-  color: white;
-}
-
-.special-code-close-btn {
-  background: rgba(255,255,255,0.25);
-  border: none;
-  color: white;
-  font-size: 22px;
-  cursor: pointer;
-  padding: 5px 10px;
+.display-method-section {
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
-  transition: background 0.2s;
+  padding: 15px;
+  margin-top: 10px;
+  text-align: center;
 }
 
-.special-code-close-btn:hover {
-  background: rgba(255,255,255,0.4);
+.radio-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  transition: all 0.2s;
 }
 
-.special-code-iframe {
-  width: 100%;
-  height: 500px;
-  border: none;
-  background: white;
+.radio-label:hover {
+  background-color: #f0f8ff;
+  border-color: #2196f3;
 }
 
-@media (max-width: 480px) {
-  .settings-modal-content {
-    max-width: none;
-  }
-  
-  .special-code-display-content {
-    max-width: none;
-  }
-  
-  .special-code-iframe {
-    height: 250px;
-  }
+.radio-label input {
+  margin-right: 8px;
+  accent-color: #2196f3;
 }
+
+/* ====== 特殊コード表示関連（廃止されたため削除） ====== */
+

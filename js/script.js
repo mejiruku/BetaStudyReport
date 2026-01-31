@@ -204,6 +204,16 @@ window.onload = () => {
   if (dateInputElement) {
     dateInputElement.value = today;
   }
+  
+  // グローバルコメント欄の自動リサイズ
+  if (globalCommentInput) {
+      globalCommentInput.addEventListener("input", function() {
+          autoResize(this);
+          generateText();
+      });
+      // 初期化
+      autoResize(globalCommentInput);
+  }
 
   // Auth State Listener
   auth.onAuthStateChanged((user) => {
@@ -338,10 +348,24 @@ function addSubject(initialData = null) {
                 </select>
                 <input type="text" class="other-subject-input" style="display:none;" placeholder="教科名を入力" oninput="generateText()">
             </div>
-            <div class="form-group"><label>内容</label><textarea class="subject-text" placeholder="今日やったこと" oninput="generateText()"></textarea></div>
+            <div class="form-group"><label>内容</label><textarea class="subject-text" placeholder="今日やったこと"></textarea></div>
             <div class="form-group"><label>勉強時間</label><div class="time-inputs"><select class="time-h" onchange="generateText()">${hoursOptions}</select> 時間 <select class="time-m" onchange="generateText()">${minutesOptions}</select> 分</div></div>`;
 
   container.appendChild(div);
+  
+  // テキストエリアの自動リサイズと更新処理の設定
+  const textarea = div.querySelector(".subject-text");
+  textarea.addEventListener("input", function() {
+      autoResize(this);
+      generateText();
+  });
+  // 初期化時にリサイズ
+  if(initialData) {
+      // 値セット後にリサイズが必要
+      setTimeout(() => autoResize(textarea), 0);
+  } else {
+      autoResize(textarea);
+  }
   if (initialData) {
     div.querySelector(".subject-select").value = initialData.select;
     const otherInput = div.querySelector(".other-subject-input");
@@ -473,66 +497,7 @@ async function loadViewModePreference() {
 }
 
 // 画面表示のみ更新（保存処理なし）- データロード時に使用
-function updateDisplay() {
-  const rows = document.querySelectorAll(".subject-row");
-  let totalMinutes = 0,
-    bodyContent = "",
-    displayGroups = new Set();
-  let validSubjectCount = 0;
 
-  rows.forEach((row) => {
-    const selectValue = row.querySelector(".subject-select").value;
-    const otherValue = row.querySelector(".other-subject-input").value;
-    const text = row.querySelector(".subject-text").value;
-    const h = parseInt(row.querySelector(".time-h").value) || 0;
-    const m = parseInt(row.querySelector(".time-m").value) || 0;
-
-    if (selectValue === "") return;
-
-    validSubjectCount++;
-    let subjectDisplayName =
-      selectValue === "その他" ? otherValue || "その他" : selectValue;
-    totalMinutes += h * 60 + m;
-
-    if (mathSubjects.includes(selectValue)) displayGroups.add("数学");
-    else if (scienceSubjects.includes(selectValue)) displayGroups.add("理科");
-    else if (englishSubjects.includes(selectValue)) displayGroups.add("英語");
-    else displayGroups.add(subjectDisplayName);
-
-    let timeStr = "";
-    if (h > 0 && m > 0) timeStr = `${h}時間${m}分`;
-    else if (h > 0 && m === 0) timeStr = `${h}時間`;
-    else if (h === 0 && m > 0) timeStr = `${m}分`;
-    else timeStr = `0分`;
-
-    bodyContent += `\n${subjectDisplayName}\n${text}\n勉強時間 ${timeStr}\n`;
-  });
-
-  const totalH = Math.floor(totalMinutes / 60);
-  const totalM = totalMinutes % 60;
-  const globalComment = globalCommentInput.value;
-
-  let header =
-    displayGroups.size > 0
-      ? `今日は${Array.from(displayGroups).join("と")}をやりました\n`
-      : `今日の学習報告\n`;
-  let finalText = header + bodyContent;
-
-  if (validSubjectCount >= 2 && totalMinutes > 0) {
-    let totalTimeStr = "";
-    if (totalH > 0 && totalM > 0) totalTimeStr = `${totalH}時間${totalM}分`;
-    else if (totalH > 0 && totalM === 0) totalTimeStr = `${totalH}時間`;
-    else totalTimeStr = `${totalM}分`;
-    finalText += `\n合計勉強時間 ${totalTimeStr}\n`;
-  }
-
-  if (globalComment.trim() !== "") {
-    finalText += `\n\n${globalComment}`;
-  }
-
-  screenTotal.innerText = `合計: ${totalH}時間 ${totalM}分`;
-  outputText.value = finalText;
-}
 
 function generateText() {
   const rows = document.querySelectorAll(".subject-row");
@@ -587,7 +552,7 @@ function generateText() {
   let header =
     displayGroups.size > 0
       ? `今日は${Array.from(displayGroups).join("と")}をやりました\n`
-      : `今日の学習報告\n`;
+      : `勉強報告\n`;
   let finalText = header + bodyContent;
 
   // 2教科以上かつ合計が0より大きい場合のみ合計時間を表示 (ヘッダーと重複するが本文用)
@@ -606,6 +571,7 @@ function generateText() {
 
   screenTotal.innerText = `合計: ${totalH}時間 ${totalM}分`;
   outputText.value = finalText;
+  autoResize(outputText);
 
   if (isLoading) return; // Don't save if we are just loading data
 
@@ -846,42 +812,23 @@ function renderData(dayData) {
   }
 
   // データロード完了後、表示を更新（保存はしない）
-  updateDisplay();
+  generateText();
+
+  // すべてのテキストエリアの高さを調整
+  document.querySelectorAll('textarea').forEach(textarea => {
+      autoResize(textarea);
+  });
 
   isLoading = false; // End loading mode
   updateSaveStatus("saved"); // Initial state is "saved" (sync with DB)
 }
 
-function migrateOldDataIfNeeded() {
-  // 旧データがあるか確認
-  const oldDataJson = localStorage.getItem("studyReportData");
-  if (oldDataJson) {
-    try {
-      const oldData = JSON.parse(oldDataJson);
-      // 今日の日付にデータを移行
-      const today = new Date().toISOString().split("T")[0];
-      const allData = getAllData();
-
-      // 既に今日のデータがある場合は上書きしないよう配慮するか、
-      // 初回移行なので、まあ上書きでも良いが、既存データがない場合のみ移行する
-      if (!allData[today]) {
-        allData[today] = oldData;
-        localStorage.setItem("studyReportAllData", JSON.stringify(allData));
-        showPopup("古いデータを本日のデータとして復元しました。");
-      }
-
-      // 旧データ削除 (あるいはバックアップとして残すか？今回は削除)
-      localStorage.removeItem("studyReportData");
-
-      // 現在表示中の日付が今日ならリロード
-      if (dateInput.value === today) {
-        loadData();
-      }
-    } catch (e) {
-      console.error("Migration failed", e);
-    }
-  }
+function autoResize(textarea) {
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
 }
+
+
 
 async function resetData() {
   const confirmed = await showConfirm(
@@ -928,30 +875,27 @@ function resetUI() {
 
 function copyToClipboard() {
   const copyTarget = document.getElementById("output-text");
-  copyTarget.select();
-  document.execCommand("copy");
   
-  // 特殊コードが設定されていれば表示
-  const specialCode = getSpecialCode();
-  if (specialCode && specialCode.trim() !== '') {
-    const displayMode = getSpecialCodeDisplay();
-    if (displayMode === 'tab') {
+  navigator.clipboard.writeText(copyTarget.value).then(() => {
+    // 特殊コードが設定されていれば表示
+    const specialCode = getSpecialCode();
+    if (specialCode && specialCode.trim() !== '') {
         // 新しいタブで表示
         const newWindow = window.open('', '_blank');
         if (newWindow) {
             newWindow.document.write(specialCode);
             newWindow.document.close();
-            showPopup("コピーしました（新しいタブで開きました）");
+            showPopup("コピーしました");
         } else {
             showPopup("ポップアップがブロックされました。設定を確認してください。");
         }
     } else {
-        // モーダルで表示（デフォルト）
-        showSpecialCode(specialCode);
+        showPopup("コピーしました");
     }
-  } else {
-    showPopup("コピーしました");
-  }
+  }).catch(err => {
+    console.error('Failed to copy text: ', err);
+    showPopup("コピーに失敗しました");
+  });
 }
 
 // ------ 設定機能 ------
@@ -966,30 +910,12 @@ function getSpecialCode() {
   }
 }
 
-// 特殊コード表示設定を取得
-function getSpecialCodeDisplay() {
-  if (currentUser) {
-    return window._cachedSpecialCodeDisplay || 'modal';
-  } else {
-    return localStorage.getItem('studyReportSpecialCodeDisplay') || 'modal';
-  }
-}
-
 // 設定モーダルを開く
 function openSettings() {
   const modal = document.getElementById('settings-modal');
   const codeInput = document.getElementById('special-code-input');
   codeInput.value = getSpecialCode();
   
-  // 表示設定の反映
-  const displayMode = getSpecialCodeDisplay();
-  const radios = document.getElementsByName('special-code-display');
-  for(const radio of radios) {
-      if(radio.value === displayMode) {
-          radio.checked = true;
-      }
-  }
-
   modal.classList.add('show');
 }
 
@@ -1004,25 +930,13 @@ async function saveSettings() {
   const codeInput = document.getElementById('special-code-input');
   const specialCode = codeInput.value;
   
-  // 表示設定の取得
-  const radios = document.getElementsByName('special-code-display');
-  let displayMode = 'modal';
-  for(const radio of radios) {
-      if(radio.checked) {
-          displayMode = radio.value;
-          break;
-      }
-  }
-  
   if (currentUser) {
     // クラウドに保存
     try {
       await db.collection('users').doc(currentUser.uid).set({
-        specialCode: specialCode,
-        specialCodeDisplay: displayMode
+        specialCode: specialCode
       }, { merge: true });
       window._cachedSpecialCode = specialCode;
-      window._cachedSpecialCodeDisplay = displayMode;
       console.log('Settings saved to cloud');
     } catch (err) {
       console.error('Failed to save settings', err);
@@ -1032,7 +946,6 @@ async function saveSettings() {
   } else {
     // ローカルに保存
     localStorage.setItem('studyReportSpecialCode', specialCode);
-    localStorage.setItem('studyReportSpecialCodeDisplay', displayMode);
   }
   
   closeSettings();
@@ -1046,39 +959,15 @@ async function loadSettings() {
       const doc = await db.collection('users').doc(currentUser.uid).get();
       if (doc.exists) {
         window._cachedSpecialCode = doc.data().specialCode || '';
-        window._cachedSpecialCodeDisplay = doc.data().specialCodeDisplay || 'modal';
       } else {
         window._cachedSpecialCode = '';
-        window._cachedSpecialCodeDisplay = 'modal';
       }
     } catch (err) {
       console.error('Failed to load settings', err);
       window._cachedSpecialCode = '';
-      window._cachedSpecialCodeDisplay = 'modal';
     }
   }
 }
-
-// 特殊コードモーダルを表示
-function showSpecialCode(htmlCode) {
-  const modal = document.getElementById('special-code-modal');
-  const iframe = document.getElementById('special-code-iframe');
-  
-  // iframeにHTMLを書き込み
-  iframe.srcdoc = htmlCode;
-  
-  modal.classList.add('show');
-}
-
-// 特殊コードモーダルを閉じる
-function closeSpecialCode() {
-  const modal = document.getElementById('special-code-modal');
-  const iframe = document.getElementById('special-code-iframe');
-  iframe.srcdoc = '';
-  modal.classList.remove('show');
-}
-
-// ------ エクスポート & インポート ------
 
 // ------ エクスポート & インポート ------
 
@@ -1289,8 +1178,15 @@ async function importToCloud(dataContainer) {
       // BUT this loses the chronological sort if multiple logs imported at once.
       // Better: use the numeric value if available.
       if (newLog.createdAt && typeof newLog.createdAt === "number") {
-        // Convert millis back to date? Firestore can take Date objects.
-        newLog.createdAt = new Date(newLog.createdAt);
+        // Convert millis back to date
+        try {
+            newLog.createdAt = new Date(newLog.createdAt);
+            if (isNaN(newLog.createdAt.getTime())) {
+                throw new Error("Invalid Date");
+            }
+        } catch (e) {
+            newLog.createdAt = new Date(); // Fallback
+        }
       } else {
         newLog.createdAt = new Date(); // Fallback
       }
