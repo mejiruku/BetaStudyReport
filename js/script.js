@@ -204,15 +204,15 @@ window.onload = () => {
   if (dateInputElement) {
     dateInputElement.value = today;
   }
-  
+
   // グローバルコメント欄の自動リサイズ
   if (globalCommentInput) {
-      globalCommentInput.addEventListener("input", function() {
-          autoResize(this);
-          generateText();
-      });
-      // 初期化
-      autoResize(globalCommentInput);
+    globalCommentInput.addEventListener("input", function () {
+      autoResize(this);
+      generateText();
+    });
+    // 初期化
+    autoResize(globalCommentInput);
   }
 
   // Auth State Listener
@@ -352,19 +352,19 @@ function addSubject(initialData = null) {
             <div class="form-group"><label>勉強時間</label><div class="time-inputs"><select class="time-h" onchange="generateText()">${hoursOptions}</select> 時間 <select class="time-m" onchange="generateText()">${minutesOptions}</select> 分</div></div>`;
 
   container.appendChild(div);
-  
+
   // テキストエリアの自動リサイズと更新処理の設定
   const textarea = div.querySelector(".subject-text");
-  textarea.addEventListener("input", function() {
-      autoResize(this);
-      generateText();
+  textarea.addEventListener("input", function () {
+    autoResize(this);
+    generateText();
   });
   // 初期化時にリサイズ
-  if(initialData) {
-      // 値セット後にリサイズが必要
-      setTimeout(() => autoResize(textarea), 0);
+  if (initialData) {
+    // 値セット後にリサイズが必要
+    setTimeout(() => autoResize(textarea), 0);
   } else {
-      autoResize(textarea);
+    autoResize(textarea);
   }
   if (initialData) {
     div.querySelector(".subject-select").value = initialData.select;
@@ -393,15 +393,15 @@ function toggleOtherInput(selectElement) {
 }
 
 function removeRow(btn) {
-  btn.closest('.subject-row').remove();
+  btn.closest(".subject-row").remove();
   generateText();
 }
 
 // 教科行を上に移動
 function moveSubjectUp(btn) {
-  const row = btn.closest('.subject-row');
+  const row = btn.closest(".subject-row");
   const prev = row.previousElementSibling;
-  if (prev && prev.classList.contains('subject-row')) {
+  if (prev && prev.classList.contains("subject-row")) {
     row.parentNode.insertBefore(row, prev);
     generateText();
   }
@@ -409,9 +409,9 @@ function moveSubjectUp(btn) {
 
 // 教科行を下に移動
 function moveSubjectDown(btn) {
-  const row = btn.closest('.subject-row');
+  const row = btn.closest(".subject-row");
   const next = row.nextElementSibling;
-  if (next && next.classList.contains('subject-row')) {
+  if (next && next.classList.contains("subject-row")) {
     row.parentNode.insertBefore(next, row);
     generateText();
   }
@@ -430,26 +430,26 @@ function toggleViewMode() {
 // 閲覧モードを適用する
 function applyViewMode(viewMode) {
   isViewMode = viewMode;
-  const container = document.querySelector('.container');
-  const toggleBtn = document.getElementById('view-mode-btn');
-  
+  const container = document.querySelector(".container");
+  const toggleBtn = document.getElementById("view-mode-btn");
+
   if (viewMode) {
-    container.classList.add('view-mode');
-    toggleBtn.textContent = '編集モードに戻る';
-    toggleBtn.classList.add('active');
+    container.classList.add("view-mode");
+    toggleBtn.textContent = "編集モードに戻る";
+    toggleBtn.classList.add("active");
     // 閲覧モード時はコピーボタンを本文の下に移動
-    const copyBtn = document.querySelector('.copy-btn');
-    const outputText = document.getElementById('output-text');
+    const copyBtn = document.querySelector(".copy-btn");
+    const outputText = document.getElementById("output-text");
     if (copyBtn && outputText) {
       outputText.parentNode.insertBefore(copyBtn, outputText.nextSibling);
     }
   } else {
-    container.classList.remove('view-mode');
-    toggleBtn.textContent = '閲覧モード';
-    toggleBtn.classList.remove('active');
+    container.classList.remove("view-mode");
+    toggleBtn.textContent = "閲覧モード";
+    toggleBtn.classList.remove("active");
     // 編集モードに戻すときはコピーボタンを元の位置（本文の上）に戻す
-    const copyBtn = document.querySelector('.copy-btn');
-    const outputText = document.getElementById('output-text');
+    const copyBtn = document.querySelector(".copy-btn");
+    const outputText = document.getElementById("output-text");
     if (copyBtn && outputText) {
       outputText.parentNode.insertBefore(copyBtn, outputText);
     }
@@ -460,44 +460,48 @@ function applyViewMode(viewMode) {
 function saveViewModePreference(viewMode) {
   if (currentUser) {
     // クラウドに保存
-    db.collection('users').doc(currentUser.uid).set({
-      viewMode: viewMode
-    }, { merge: true })
-    .then(() => console.log('View mode saved to cloud'))
-    .catch(err => console.error('Failed to save view mode', err));
+    db.collection("users")
+      .doc(currentUser.uid)
+      .set(
+        {
+          viewMode: viewMode,
+        },
+        { merge: true },
+      )
+      .then(() => console.log("View mode saved to cloud"))
+      .catch((err) => console.error("Failed to save view mode", err));
   } else {
     // ローカルに保存
-    localStorage.setItem('studyReportViewMode', viewMode ? 'true' : 'false');
+    localStorage.setItem("studyReportViewMode", viewMode ? "true" : "false");
   }
 }
 
 // 閲覧モード設定を読み込み
 async function loadViewModePreference() {
   let viewMode = false;
-  
+
   if (currentUser) {
     // クラウドから読み込み
     try {
-      const doc = await db.collection('users').doc(currentUser.uid).get();
+      const doc = await db.collection("users").doc(currentUser.uid).get();
       if (doc.exists && doc.data().viewMode !== undefined) {
         viewMode = doc.data().viewMode;
       }
     } catch (err) {
-      console.error('Failed to load view mode', err);
+      console.error("Failed to load view mode", err);
     }
   } else {
     // ローカルから読み込み
-    const saved = localStorage.getItem('studyReportViewMode');
-    viewMode = saved === 'true';
+    const saved = localStorage.getItem("studyReportViewMode");
+    viewMode = saved === "true";
   }
-  
+
   if (viewMode) {
     applyViewMode(true);
   }
 }
 
 // 画面表示のみ更新（保存処理なし）- データロード時に使用
-
 
 function generateText() {
   const rows = document.querySelectorAll(".subject-row");
@@ -815,8 +819,8 @@ function renderData(dayData) {
   generateText();
 
   // すべてのテキストエリアの高さを調整
-  document.querySelectorAll('textarea').forEach(textarea => {
-      autoResize(textarea);
+  document.querySelectorAll("textarea").forEach((textarea) => {
+    autoResize(textarea);
   });
 
   isLoading = false; // End loading mode
@@ -824,11 +828,9 @@ function renderData(dayData) {
 }
 
 function autoResize(textarea) {
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight + 'px';
+  textarea.style.height = "auto";
+  textarea.style.height = textarea.scrollHeight + "px";
 }
-
-
 
 async function resetData() {
   const confirmed = await showConfirm(
@@ -875,96 +877,145 @@ function resetUI() {
 
 function copyToClipboard() {
   const copyTarget = document.getElementById("output-text");
-  
-  navigator.clipboard.writeText(copyTarget.value).then(() => {
-    // 特殊コードが設定されていれば表示
-    const specialCode = getSpecialCode();
-    if (specialCode && specialCode.trim() !== '') {
+
+  navigator.clipboard
+    .writeText(copyTarget.value)
+    .then(() => {
+      // 特殊コードが設定されていれば表示
+      const specialCode = getSpecialCode();
+      const isSpecialCodeEnabled = getSpecialCodeEnabled();
+      if (isSpecialCodeEnabled && specialCode && specialCode.trim() !== "") {
         // 新しいタブで表示
-        const newWindow = window.open('', '_blank');
+        const newWindow = window.open("", "_blank");
         if (newWindow) {
-            newWindow.document.write(specialCode);
-            newWindow.document.close();
-            showPopup("コピーしました");
+          newWindow.document.write(specialCode);
+          newWindow.document.close();
+          showPopup("コピーしました");
         } else {
-            showPopup("ポップアップがブロックされました。設定を確認してください。");
+          showPopup(
+            "ポップアップがブロックされました。設定を確認してください。",
+          );
         }
-    } else {
+      } else {
         showPopup("コピーしました");
-    }
-  }).catch(err => {
-    console.error('Failed to copy text: ', err);
-    showPopup("コピーに失敗しました");
-  });
+      }
+    })
+    .catch((err) => {
+      console.error("Failed to copy text: ", err);
+      showPopup("コピーに失敗しました");
+    });
 }
 
 // ------ 設定機能 ------
+
+// 特殊コード機能が有効かどうかを取得
+function getSpecialCodeEnabled() {
+  if (currentUser) {
+    return window._cachedSpecialCodeEnabled !== false; // Default true if undefined? Or false? Let's say default false if not set, or maintain current behavior (which was always enabled if code existed).
+    // Actually, previously it was always enabled if code existed. So default should be true?
+    // Let's assume default false for new feature, or true to not break existing user workflow?
+    // If I default to true, existing users keep their popup.
+    return window._cachedSpecialCodeEnabled === true;
+  } else {
+    return localStorage.getItem("studyReportSpecialCodeEnabled") === "true";
+  }
+}
 
 // 特殊コードを取得
 function getSpecialCode() {
   if (currentUser) {
     // キャッシュから取得（loadSettingsで読み込み済み）
-    return window._cachedSpecialCode || '';
+    return window._cachedSpecialCode || "";
   } else {
-    return localStorage.getItem('studyReportSpecialCode') || '';
+    return localStorage.getItem("studyReportSpecialCode") || "";
   }
 }
 
 // 設定モーダルを開く
 function openSettings() {
-  const modal = document.getElementById('settings-modal');
-  const codeInput = document.getElementById('special-code-input');
+  const modal = document.getElementById("settings-modal");
+  const codeInput = document.getElementById("special-code-input");
+  const toggle = document.getElementById("special-code-toggle");
+
   codeInput.value = getSpecialCode();
-  
-  modal.classList.add('show');
+  toggle.checked = getSpecialCodeEnabled();
+
+  // トグルの状態に合わせてテキストエリアの有効/無効を切り替え
+  toggleSpecialCodeInput();
+  toggle.onchange = toggleSpecialCodeInput;
+
+  modal.classList.add("show");
+}
+
+function toggleSpecialCodeInput() {
+  const toggle = document.getElementById("special-code-toggle");
+  const codeInput = document.getElementById("special-code-input");
+  if (toggle.checked) {
+    codeInput.disabled = false;
+    codeInput.style.opacity = "1";
+  } else {
+    codeInput.disabled = true;
+    codeInput.style.opacity = "0.5";
+  }
 }
 
 // 設定モーダルを閉じる
 function closeSettings() {
-  const modal = document.getElementById('settings-modal');
-  modal.classList.remove('show');
+  const modal = document.getElementById("settings-modal");
+  modal.classList.remove("show");
 }
 
 // 設定を保存
 async function saveSettings() {
-  const codeInput = document.getElementById('special-code-input');
+  const codeInput = document.getElementById("special-code-input");
+  const toggle = document.getElementById("special-code-toggle");
   const specialCode = codeInput.value;
-  
+  const isEnabled = toggle.checked;
+
   if (currentUser) {
     // クラウドに保存
     try {
-      await db.collection('users').doc(currentUser.uid).set({
-        specialCode: specialCode
-      }, { merge: true });
+      await db.collection("users").doc(currentUser.uid).set(
+        {
+          specialCode: specialCode,
+          specialCodeEnabled: isEnabled,
+        },
+        { merge: true },
+      );
       window._cachedSpecialCode = specialCode;
-      console.log('Settings saved to cloud');
+      window._cachedSpecialCodeEnabled = isEnabled;
+      console.log("Settings saved to cloud");
     } catch (err) {
-      console.error('Failed to save settings', err);
-      showPopup('設定の保存に失敗しました');
+      console.error("Failed to save settings", err);
+      showPopup("設定の保存に失敗しました");
       return;
     }
   } else {
     // ローカルに保存
-    localStorage.setItem('studyReportSpecialCode', specialCode);
+    localStorage.setItem("studyReportSpecialCode", specialCode);
+    localStorage.setItem("studyReportSpecialCodeEnabled", isEnabled);
   }
-  
+
   closeSettings();
-  showPopup('設定を保存しました');
+  showPopup("設定を保存しました");
 }
 
 // 設定を読み込み（ページロード時）
 async function loadSettings() {
   if (currentUser) {
     try {
-      const doc = await db.collection('users').doc(currentUser.uid).get();
+      const doc = await db.collection("users").doc(currentUser.uid).get();
       if (doc.exists) {
-        window._cachedSpecialCode = doc.data().specialCode || '';
+        window._cachedSpecialCode = doc.data().specialCode || "";
+        window._cachedSpecialCodeEnabled =
+          doc.data().specialCodeEnabled === true;
       } else {
-        window._cachedSpecialCode = '';
+        window._cachedSpecialCode = "";
+        window._cachedSpecialCodeEnabled = false;
       }
     } catch (err) {
-      console.error('Failed to load settings', err);
-      window._cachedSpecialCode = '';
+      console.error("Failed to load settings", err);
+      window._cachedSpecialCode = "";
     }
   }
 }
@@ -1180,12 +1231,12 @@ async function importToCloud(dataContainer) {
       if (newLog.createdAt && typeof newLog.createdAt === "number") {
         // Convert millis back to date
         try {
-            newLog.createdAt = new Date(newLog.createdAt);
-            if (isNaN(newLog.createdAt.getTime())) {
-                throw new Error("Invalid Date");
-            }
+          newLog.createdAt = new Date(newLog.createdAt);
+          if (isNaN(newLog.createdAt.getTime())) {
+            throw new Error("Invalid Date");
+          }
         } catch (e) {
-            newLog.createdAt = new Date(); // Fallback
+          newLog.createdAt = new Date(); // Fallback
         }
       } else {
         newLog.createdAt = new Date(); // Fallback
