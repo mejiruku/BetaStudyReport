@@ -38,7 +38,7 @@ function showPopup(message) {
   modal.addEventListener("click", handleBackdropClick);
 }
 
-// --- カスタム確認ダイアログ関数 (Promiseベース: ログアウトやリセット用) ---
+// --- カスタム確認ダイアログ関数 (Promiseベース) ---
 function showConfirm(message) {
   return new Promise((resolve) => {
     const modal = document.getElementById("confirm-modal");
@@ -192,7 +192,7 @@ const saveStatus = document.getElementById("save-status");
 let currentUser = null;
 let saveTimer = null;
 let isSaving = false;
-let isLoading = false; // Flag to prevent auto-save during initial load
+let isLoading = false;
 
 // デフォルトの日付を今日に設定 & Auth監視
 window.onload = () => {
@@ -203,13 +203,11 @@ window.onload = () => {
     dateInputElement.value = today;
   }
 
-  // グローバルコメント欄の自動リサイズ
   if (globalCommentInput) {
     globalCommentInput.addEventListener("input", function () {
       autoResize(this);
       generateText();
     });
-    // 初期化
     autoResize(globalCommentInput);
   }
 
@@ -218,36 +216,36 @@ window.onload = () => {
     currentUser = user;
     updateAuthUI(user);
     if (user) {
-      // Logged In: Perform bidirectional sync
+      // Logged In
       syncDataOnLogin();
       loadViewModePreference();
       loadSettings();
     } else {
-      // Guest Mode: Load from Local Storage
+      // Guest Mode
       loadData();
       loadViewModePreference();
     }
   });
 
-  // Redirect Result handling (for mobile login)
+  // Redirect Result handling (重要な修正: iPadでのリダイレクト戻り処理)
   auth
     .getRedirectResult()
     .then((result) => {
       if (result.credential) {
-        var token = result.credential.accessToken;
+        // ログイン成功
+        console.log("Redirect login successful", result.user);
       }
-      var user = result.user;
-      if (user) {
-        console.log("Redirect login successful", user);
+      if (result.user) {
+         // ここでユーザー情報が取れればログイン成功扱い
+         updateAuthUI(result.user);
       }
     })
     .catch((error) => {
       console.error("Redirect login failed", error);
-      showPopup("ログインに失敗しました(Redirect): " + error.message);
+      showPopup("ログインに失敗しました: " + error.message);
     });
 };
 
-// Unsaved changes warning
 window.addEventListener("beforeunload", (e) => {
   if (isSaving || saveTimer) {
     e.preventDefault();
@@ -298,37 +296,33 @@ function updateAuthUI(user) {
 }
 
 // =========================================================
-// [最終修正版] iPad PWAログイン対策
-// システム標準のconfirmを使うことで、ポップアップブロックを確実に回避します
+// [再修正版] iPad PWAログイン対策
+// ポップアップが白画面になるため、リダイレクトに戻します。
+// ただし、「Persistence（保存）」設定を明示的に行うことで
+// リダイレクト後の未ログイン問題を解決します。
 // =========================================================
 function login() {
   const message = "ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？";
 
-  // iPad (PWA含む) または スマホかどうかの判定
   const isIpad = /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1;
   const isMobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  // 【最重要】
-  // iPadやスマホの場合は、カスタム画面（div）を使わず、ブラウザ標準の confirm() を使う。
-  // これにより「ユーザーのクリック操作」として認識され続け、ポップアップがブロックされなくなります。
+  // モバイル・iPadの場合は標準ダイアログを使用 (ポップアップブロック回避のため)
   if (isIpad || isMobileUA) {
-    // 標準の確認ダイアログを表示（ここで処理が一時停止し、ユーザーが押すのを待つ）
     if (window.confirm(message)) {
-      // OKが押されたら、間髪入れずに即座にログインを実行
-      performLoginForMobile(isIpad); 
+      performLoginWithPersistence(isIpad || isMobileUA); 
     }
     return;
   }
 
-  // --- PCの場合は今まで通りおしゃれな画面を使用 ---
+  // PCの場合はおしゃれな画面を使用
   const modal = document.getElementById("confirm-modal");
   const messageEl = document.getElementById("confirm-message");
   const okBtn = document.getElementById("confirm-ok-btn");
   const cancelBtn = document.getElementById("confirm-cancel-btn");
 
   if (!modal || !messageEl || !okBtn || !cancelBtn) {
-    // 要素が見つからなければ標準ダイアログ
-    if (confirm(message)) performLoginForMobile(false);
+    if (confirm(message)) performLoginWithPersistence(false);
     return;
   }
 
@@ -337,7 +331,7 @@ function login() {
 
   const handleOk = () => {
     cleanup();
-    performLoginForMobile(false);
+    performLoginWithPersistence(false);
   };
 
   const handleCancel = () => {
@@ -361,22 +355,23 @@ function login() {
   modal.addEventListener("click", handleBackdropClick);
 }
 
-// 実際のログイン処理
-function performLoginForMobile(isIpad) {
-  // iPadは「ポップアップ」、それ以外のスマホは「リダイレクト」
-  // ※iPad (PWA) でリダイレクトすると「戻ってきたときにログアウト状態」になる問題があるためポップアップ推奨
-  if (isIpad) {
-    auth.signInWithPopup(provider)
-      .then(() => {
-        // 成功時の処理は onAuthStateChanged に任せる
-      })
-      .catch((err) => {
-        console.error("Login failed", err);
-        showPopup("ログインエラー: " + err.message);
-      });
-  } else {
-    // iPhone/Androidスマホ
-    auth.signInWithRedirect(provider);
+// ログイン処理（Persistence設定付き）
+async function performLoginWithPersistence(isMobile) {
+  try {
+    // 【重要】ログイン状態を明示的に「LOCAL（ブラウザを閉じても維持）」に設定
+    // これにより、リダイレクトから戻ってきたときもログイン状態が維持されやすくなります
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    
+    if (isMobile) {
+      // iPad/スマホはリダイレクト（ポップアップは白画面になるため不可）
+      await auth.signInWithRedirect(provider);
+    } else {
+      // PCはポップアップ
+      await auth.signInWithPopup(provider);
+    }
+  } catch (err) {
+    console.error("Login setup failed", err);
+    showPopup("エラーが発生しました: " + err.message);
   }
 }
 // =========================================================
@@ -385,7 +380,6 @@ async function logout() {
   const confirmed = await showConfirm("ログアウトしますか？");
   if (confirmed) {
     auth.signOut().then(() => {
-      // Logout successful. onAuthStateChanged handles UI switch.
     });
   }
 }
