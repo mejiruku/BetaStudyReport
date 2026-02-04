@@ -1,7 +1,7 @@
 const CACHE_NAME = 'study-report-v1';
 const urlsToCache = [
     './',
-    'https://mejiruku.github.io/study-report/',
+    'https://mejiruku.github.io/StudyReportBeta/',
     './manifest.json'
 ];
 

@@ -233,6 +233,26 @@ window.onload = () => {
       loadViewModePreference();
     }
   });
+
+  // Redirect Result handling (for mobile login)
+  auth
+    .getRedirectResult()
+    .then((result) => {
+      if (result.credential) {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        var token = result.credential.accessToken;
+      }
+      // The signed-in user info.
+      var user = result.user;
+      if (user) {
+        console.log("Redirect login successful", user);
+        // onAuthStateChanged will handle the rest
+      }
+    })
+    .catch((error) => {
+      console.error("Redirect login failed", error);
+      showPopup("ログインに失敗しました(Redirect): " + error.message);
+    });
 };
 
 // Unsaved changes warning
@@ -293,16 +313,28 @@ async function login() {
     "ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？",
   );
   if (confirmed) {
-    auth
-      .signInWithPopup(provider)
-      .then(() => {
-        // Successful login will trigger onAuthStateChanged
-        // which handles the data wiping.
-      })
-      .catch((err) => {
-        console.error("Login failed", err);
-        showPopup("ログインに失敗しました");
-      });
+    // Check for mobile/tablet UA
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      );
+
+    if (isMobile) {
+      // Use Redirect for Mobile/Tablet (Better for PWA)
+      auth.signInWithRedirect(provider);
+    } else {
+      // Use Popup for Desktop
+      auth
+        .signInWithPopup(provider)
+        .then(() => {
+          // Successful login will trigger onAuthStateChanged
+          // which handles the data wiping.
+        })
+        .catch((err) => {
+          console.error("Login failed", err);
+          showPopup("ログインに失敗しました");
+        });
+    }
   }
 }
 
