@@ -314,10 +314,14 @@ async function login() {
   );
   if (confirmed) {
     // Check for mobile/tablet UA
+    // Also check for iPad (Macintosh + Touch)
     const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent,
-      );
+      ) ||
+      (navigator.userAgent.includes("Macintosh") &&
+        navigator.maxTouchPoints &&
+        navigator.maxTouchPoints > 0);
 
     if (isMobile) {
       // Use Redirect for Mobile/Tablet (Better for PWA)
