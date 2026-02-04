@@ -15,6 +15,7 @@ function showPopup(message) {
   const closeBtn = document.getElementById("popup-close-btn");
 
   if (!modal || !messageEl || !closeBtn) {
+    // Fallback to native alert if elements don't exist
     alert(message);
     return;
   }
@@ -38,7 +39,7 @@ function showPopup(message) {
   modal.addEventListener("click", handleBackdropClick);
 }
 
-// --- カスタム確認ダイアログ関数 (Promiseベース) ---
+// --- カスタム確認ダイアログ関数 ---
 function showConfirm(message) {
   return new Promise((resolve) => {
     const modal = document.getElementById("confirm-modal");
@@ -93,6 +94,7 @@ function showExportConfirm() {
     const cancelBtn = document.getElementById("export-cancel-btn");
 
     if (!modal || !withLogsBtn || !noLogsBtn || !cancelBtn) {
+      // Fallback
       resolve("cancel");
       return;
     }
@@ -192,13 +194,10 @@ const saveStatus = document.getElementById("save-status");
 let currentUser = null;
 let saveTimer = null;
 let isSaving = false;
-let isLoading = false;
+let isLoading = false; // Flag to prevent auto-save during initial load
 
+// デフォルトの日付を今日に設定 & Auth監視
 window.onload = () => {
-  // 初期化時に永続性を設定
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .catch((err) => console.error("Persistence error", err));
-
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const dateInputElement = document.getElementById("report-date");
@@ -206,38 +205,68 @@ window.onload = () => {
     dateInputElement.value = today;
   }
 
+  // グローバルコメント欄の自動リサイズ
   if (globalCommentInput) {
     globalCommentInput.addEventListener("input", function () {
       autoResize(this);
       generateText();
     });
+    // 初期化
     autoResize(globalCommentInput);
   }
 
-  // 認証状態の監視
+  // Auth State Listener
   auth.onAuthStateChanged((user) => {
     currentUser = user;
     updateAuthUI(user);
     if (user) {
+      // Logged In: Perform bidirectional sync
       syncDataOnLogin();
+      // 閲覧モード設定を読み込み
       loadViewModePreference();
+      // 特殊コード設定を読み込み
       loadSettings();
     } else {
+      // Guest Mode: Load from Local Storage
       loadData();
+      // 閲覧モード設定を読み込み
       loadViewModePreference();
     }
   });
+
+  // Redirect Result handling (for mobile login)
+  auth
+    .getRedirectResult()
+    .then((result) => {
+      if (result.credential) {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        var token = result.credential.accessToken;
+      }
+      // The signed-in user info.
+      var user = result.user;
+      if (user) {
+        console.log("Redirect login successful", user);
+        // onAuthStateChanged will handle the rest
+      }
+    })
+    .catch((error) => {
+      console.error("Redirect login failed", error);
+      showPopup("ログインに失敗しました(Redirect): " + error.message);
+    });
 };
 
+// Unsaved changes warning
 window.addEventListener("beforeunload", (e) => {
   if (isSaving || saveTimer) {
     e.preventDefault();
-    e.returnValue = "";
+    e.returnValue = ""; // Standard for Chrome
   }
 });
 
 function updateSaveStatus(status) {
   if (!saveStatus) return;
+
+  // Clear classes
   saveStatus.className = "save-status";
 
   if (status === "saving") {
@@ -278,96 +307,54 @@ function updateAuthUI(user) {
   }
 }
 
-// =========================================================
-// [iPad PWA 最終解決策] 即時ポップアップ版
-// 確認ダイアログを挟むとブロックされるため、iPad/スマホでは
-// ボタンクリック直後に認証を実行します。
-// =========================================================
-function login() {
-  const message = "ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？";
+async function login() {
+  // Warning before login
+  const confirmed = await showConfirm(
+    "ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？",
+  );
+  if (confirmed) {
+    // Check for mobile/tablet UA
+    const isMobile =
+      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent,
+      );
 
-  const isIpad = /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1;
-  const isMobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  
-  // iPad または スマホの場合
-  if (isIpad || isMobileUA) {
-    // 【重要】確認ダイアログ(confirm)を出さずに、いきなりログインを実行します。
-    // これにより「ユーザーがボタンを押した」という判定が継続し、
-    // 白い画面にならずにGoogleログイン画面が開くはずです。
-    // また、リダイレクトではなくポップアップを使うことで、セッション切れも防ぎます。
-    
-    // 念のためPersistenceを設定してから実行
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .then(() => {
-        return auth.signInWithPopup(provider);
-      })
-      .then((result) => {
-        showPopup("ログイン成功！");
-        // 成功時の処理は onAuthStateChanged が行います
-      })
-      .catch((err) => {
-        console.error("Login failed", err);
-        // ポップアップがそれでもブロックされる、または閉じられた場合
-        showPopup("ログインできませんでした: " + err.message);
-      });
-    
-    return;
+    if (isMobile) {
+      // Use Redirect for Mobile/Tablet (Better for PWA)
+      auth.signInWithRedirect(provider);
+    } else {
+      // Use Popup for Desktop
+      auth
+        .signInWithPopup(provider)
+        .then(() => {
+          // Successful login will trigger onAuthStateChanged
+          // which handles the data wiping.
+        })
+        .catch((err) => {
+          console.error("Login failed", err);
+          showPopup("ログインに失敗しました");
+        });
+    }
   }
-
-  // --- PCの場合は今まで通りおしゃれな画面を使用 ---
-  const modal = document.getElementById("confirm-modal");
-  const messageEl = document.getElementById("confirm-message");
-  const okBtn = document.getElementById("confirm-ok-btn");
-  const cancelBtn = document.getElementById("confirm-cancel-btn");
-
-  if (!modal || !messageEl || !okBtn || !cancelBtn) {
-    if (confirm(message)) auth.signInWithPopup(provider);
-    return;
-  }
-
-  messageEl.innerText = message;
-  modal.classList.add("show");
-
-  const handleOk = () => {
-    cleanup();
-    auth.signInWithPopup(provider);
-  };
-
-  const handleCancel = () => {
-    cleanup();
-    modal.classList.remove("show");
-  };
-
-  const handleBackdropClick = (e) => {
-    if (e.target === modal) handleCancel();
-  };
-
-  const cleanup = () => {
-    okBtn.removeEventListener("click", handleOk);
-    cancelBtn.removeEventListener("click", handleCancel);
-    modal.removeEventListener("click", handleBackdropClick);
-    modal.classList.remove("show");
-  };
-
-  okBtn.addEventListener("click", handleOk);
-  cancelBtn.addEventListener("click", handleCancel);
-  modal.addEventListener("click", handleBackdropClick);
 }
 
 async function logout() {
   const confirmed = await showConfirm("ログアウトしますか？");
   if (confirmed) {
     auth.signOut().then(() => {
+      // Logout successful. onAuthStateChanged handles UI switch.
     });
   }
 }
 
 dateInput.addEventListener("change", () => {
+  // 日付変更前に保存タイマーをキャンセル（古いデータが新しい日付に保存されるのを防ぐ）
   if (saveTimer) {
     clearTimeout(saveTimer);
     saveTimer = null;
   }
   loadData();
+  // generateTextはloadData -> renderData -> addSubjectで呼ばれるため不要
 });
 
 function addSubject(initialData = null) {
@@ -398,12 +385,15 @@ function addSubject(initialData = null) {
 
   container.appendChild(div);
 
+  // テキストエリアの自動リサイズと更新処理の設定
   const textarea = div.querySelector(".subject-text");
   textarea.addEventListener("input", function () {
     autoResize(this);
     generateText();
   });
+  // 初期化時にリサイズ
   if (initialData) {
+    // 値セット後にリサイズが必要
     setTimeout(() => autoResize(textarea), 0);
   } else {
     autoResize(textarea);
@@ -417,6 +407,7 @@ function addSubject(initialData = null) {
     div.querySelector(".time-h").value = initialData.h;
     div.querySelector(".time-m").value = initialData.m;
   }
+  // isLoading中はgenerateTextを呼ばない（保存が発生しない純粋な表示更新は後でまとめて行う）
   if (!isLoading) {
     generateText();
   }
@@ -438,6 +429,7 @@ function removeRow(btn) {
   generateText();
 }
 
+// 教科行を上に移動
 function moveSubjectUp(btn) {
   const row = btn.closest(".subject-row");
   const prev = row.previousElementSibling;
@@ -447,6 +439,7 @@ function moveSubjectUp(btn) {
   }
 }
 
+// 教科行を下に移動
 function moveSubjectDown(btn) {
   const row = btn.closest(".subject-row");
   const next = row.nextElementSibling;
@@ -456,14 +449,17 @@ function moveSubjectDown(btn) {
   }
 }
 
+// 閲覧モード状態
 let isViewMode = false;
 
+// 閲覧モード切り替え
 function toggleViewMode() {
   isViewMode = !isViewMode;
   applyViewMode(isViewMode);
   saveViewModePreference(isViewMode);
 }
 
+// 閲覧モードを適用する
 function applyViewMode(viewMode) {
   isViewMode = viewMode;
   const container = document.querySelector(".container");
@@ -473,6 +469,7 @@ function applyViewMode(viewMode) {
     container.classList.add("view-mode");
     toggleBtn.textContent = "編集モードに戻る";
     toggleBtn.classList.add("active");
+    // 閲覧モード時はコピーボタンを本文の下に移動
     const copyBtn = document.querySelector(".copy-btn");
     const outputText = document.getElementById("output-text");
     if (copyBtn && outputText) {
@@ -482,6 +479,7 @@ function applyViewMode(viewMode) {
     container.classList.remove("view-mode");
     toggleBtn.textContent = "閲覧モード";
     toggleBtn.classList.remove("active");
+    // 編集モードに戻すときはコピーボタンを元の位置（本文の上）に戻す
     const copyBtn = document.querySelector(".copy-btn");
     const outputText = document.getElementById("output-text");
     if (copyBtn && outputText) {
@@ -490,8 +488,10 @@ function applyViewMode(viewMode) {
   }
 }
 
+// 閲覧モード設定を保存
 function saveViewModePreference(viewMode) {
   if (currentUser) {
+    // クラウドに保存
     db.collection("users")
       .doc(currentUser.uid)
       .set(
@@ -503,14 +503,17 @@ function saveViewModePreference(viewMode) {
       .then(() => console.log("View mode saved to cloud"))
       .catch((err) => console.error("Failed to save view mode", err));
   } else {
+    // ローカルに保存
     localStorage.setItem("studyReportViewMode", viewMode ? "true" : "false");
   }
 }
 
+// 閲覧モード設定を読み込み
 async function loadViewModePreference() {
   let viewMode = false;
 
   if (currentUser) {
+    // クラウドから読み込み
     try {
       const doc = await db.collection("users").doc(currentUser.uid).get();
       if (doc.exists && doc.data().viewMode !== undefined) {
@@ -520,6 +523,7 @@ async function loadViewModePreference() {
       console.error("Failed to load view mode", err);
     }
   } else {
+    // ローカルから読み込み
     const saved = localStorage.getItem("studyReportViewMode");
     viewMode = saved === "true";
   }
@@ -528,6 +532,8 @@ async function loadViewModePreference() {
     applyViewMode(true);
   }
 }
+
+// 画面表示のみ更新（保存処理なし）- データロード時に使用
 
 function generateText() {
   const rows = document.querySelectorAll(".subject-row");
@@ -564,6 +570,7 @@ function generateText() {
     else if (englishSubjects.includes(selectValue)) displayGroups.add("英語");
     else displayGroups.add(subjectDisplayName);
 
+    // 時間の文字列作成（0分を隠す）
     let timeStr = "";
     if (h > 0 && m > 0) timeStr = `${h}時間${m}分`;
     else if (h > 0 && m === 0) timeStr = `${h}時間`;
@@ -584,11 +591,13 @@ function generateText() {
       : `勉強報告\n`;
   let finalText = header + bodyContent;
 
+  // 2教科以上かつ合計が0より大きい場合のみ合計時間を表示 (ヘッダーと重複するが本文用)
   if (validSubjectCount >= 2 && totalMinutes > 0) {
     let totalTimeStr = "";
     if (totalH > 0 && totalM > 0) totalTimeStr = `${totalH}時間${totalM}分`;
     else if (totalH > 0 && totalM === 0) totalTimeStr = `${totalH}時間`;
     else totalTimeStr = `${totalM}分`;
+    // 【修正箇所】先頭に \n を追加して改行を入れています
     finalText += `\n合計勉強時間 ${totalTimeStr}\n`;
   }
 
@@ -600,18 +609,21 @@ function generateText() {
   outputText.value = finalText;
   autoResize(outputText);
 
-  if (isLoading) return;
+  if (isLoading) return; // Don't save if we are just loading data
 
+  // Debounced Save
   updateSaveStatus("saving");
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     performSave(currentDateStr, saveDataArray, globalComment);
-  }, 1500);
+  }, 1500); // 1.5 second delay
 }
 
 function performSave(dateKey, subjects, comment) {
   isSaving = true;
   saveTimer = null;
+
+  // 変更内容を検出してログに記録
   const changeDetail = detectChanges(dateKey, subjects, comment);
 
   if (currentUser) {
@@ -621,12 +633,15 @@ function performSave(dateKey, subjects, comment) {
   }
 }
 
+// 変更内容を検出する関数
 function detectChanges(dateKey, newSubjects, newComment) {
   let oldData = null;
 
   if (currentUser) {
+    // クラウドの場合は直前のキャッシュから取得（ない場合は新規扱い）
     oldData = window._lastLoadedData || null;
   } else {
+    // ローカルの場合
     const allData = getAllData();
     oldData = allData[dateKey] || null;
   }
@@ -639,20 +654,24 @@ function detectChanges(dateKey, newSubjects, newComment) {
   const oldSubjects = oldData.subjects || [];
   const oldComment = oldData.comment || "";
 
+  // 教科の変更を検出
   const maxLen = Math.max(newSubjects.length, oldSubjects.length);
   for (let i = 0; i < maxLen; i++) {
     const newSub = newSubjects[i];
     const oldSub = oldSubjects[i];
 
     if (!oldSub && newSub && newSub.select) {
+      // 新規追加
       const subjectName =
         newSub.select === "その他" ? newSub.other || "その他" : newSub.select;
       changes.push(`${subjectName}を追加`);
     } else if (oldSub && !newSub) {
+      // 削除
       const subjectName =
         oldSub.select === "その他" ? oldSub.other || "その他" : oldSub.select;
       changes.push(`${subjectName}を削除`);
     } else if (oldSub && newSub) {
+      // 変更を検出
       const oldName =
         oldSub.select === "その他" ? oldSub.other || "その他" : oldSub.select;
       const newName =
@@ -668,6 +687,7 @@ function detectChanges(dateKey, newSubjects, newComment) {
     }
   }
 
+  // コメントの変更を検出
   if (oldComment !== newComment) {
     if (!oldComment && newComment) {
       changes.push("コメントを追加");
@@ -702,7 +722,11 @@ function saveToFirestoreWithLog(dateKey, subjects, comment, changeDetail) {
       console.log("Saved to Firestore");
       isSaving = false;
       updateSaveStatus("saved");
+
+      // 変更詳細をログに記録
       addSyncLog("edit", dateKey, changeDetail);
+
+      // 現在のデータをキャッシュ
       window._lastLoadedData = { subjects, comment };
     })
     .catch((err) => {
@@ -713,6 +737,13 @@ function saveToFirestoreWithLog(dateKey, subjects, comment, changeDetail) {
 }
 
 // ------ ストレージ関連 (日付対応) ------
+
+// データ構造:
+// localStorage['studyReportAllData'] = JSON.stringify({
+//    "2025-01-01": { subjects: [...], comment: "..." },
+//    "2025-01-02": { subjects: [...], comment: "..." }
+// });
+
 function getAllData() {
   const json = localStorage.getItem("studyReportAllData");
   if (!json) return {};
@@ -730,10 +761,13 @@ function saveToLocalStorageWithLog(dateKey, subjects, comment, changeDetail) {
     allData[dateKey] = {
       subjects: subjects,
       comment: comment,
-      updatedAt: Date.now(),
+      updatedAt: Date.now(), // ミリ秒タイムスタンプ
     };
     localStorage.setItem("studyReportAllData", JSON.stringify(allData));
+
+    // 変更詳細をログに記録
     addSyncLog("edit", dateKey, changeDetail);
+
     setTimeout(() => {
       isSaving = false;
       updateSaveStatus("saved");
@@ -749,16 +783,19 @@ function loadData() {
   const dateKey = dateInput.value;
   if (!dateKey) return;
 
+  // ロード開始時にisLoadingをセット（レースコンディション防止）
   isLoading = true;
 
   if (currentUser) {
-    const requestedDateKey = dateKey;
+    // Load from Firestore
+    const requestedDateKey = dateKey; // クロージャでキャプチャ
     db.collection("users")
       .doc(currentUser.uid)
       .collection("reports")
       .doc(dateKey)
       .get()
       .then((doc) => {
+        // ロード中に日付が変わった場合は無視
         if (dateInput.value !== requestedDateKey) {
           return;
         }
@@ -766,7 +803,7 @@ function loadData() {
           const data = doc.data();
           renderData(data);
         } else {
-          renderData(null);
+          renderData(null); // No data for this day
         }
       })
       .catch((err) => {
@@ -776,6 +813,7 @@ function loadData() {
         }
       });
   } else {
+    // Load from LocalStorage
     const allData = getAllData();
     const dayData = allData[dateKey];
     renderData(dayData);
@@ -783,9 +821,10 @@ function loadData() {
 }
 
 function renderData(dayData) {
-  isLoading = true;
+  isLoading = true; // Start loading mode
   container.innerHTML = "";
 
+  // 変更検出用にロードしたデータをキャッシュ
   if (dayData) {
     window._lastLoadedData = {
       subjects: dayData.subjects || [],
@@ -803,19 +842,23 @@ function renderData(dayData) {
       addSubject();
     }
   } else {
+    // データがない日は空の行を一つ追加
     globalCommentInput.value = "";
     addSubject();
   }
 
+  // データロード完了後、表示を更新（保存はしない）
   generateText();
 
+  // すべてのテキストエリアの高さを調整
   document.querySelectorAll("textarea").forEach((textarea) => {
     autoResize(textarea);
+    // DOM描画完了後に確実にリサイズされるように遅延実行
     setTimeout(() => autoResize(textarea), 0);
   });
 
-  isLoading = false;
-  updateSaveStatus("saved");
+  isLoading = false; // End loading mode
+  updateSaveStatus("saved"); // Initial state is "saved" (sync with DB)
 }
 
 function autoResize(textarea) {
@@ -832,6 +875,7 @@ async function resetData() {
     const allData = getAllData();
 
     if (currentUser) {
+      // Delete from Firestore
       db.collection("users")
         .doc(currentUser.uid)
         .collection("reports")
@@ -843,6 +887,7 @@ async function resetData() {
         .catch((err) => console.error("Error deleting", err));
     } else {
       try {
+        // その日のデータを削除
         delete allData[dateKey];
         localStorage.setItem("studyReportAllData", JSON.stringify(allData));
         resetUI();
@@ -854,11 +899,13 @@ async function resetData() {
 }
 
 function resetUI() {
-  isLoading = true;
+  isLoading = true; // 保存を防止
   container.innerHTML = "";
   globalCommentInput.value = "";
   addSubject();
   isLoading = false;
+  // addSubjectはisLoading=falseの後に呼ばれるのでgenerateTextが実行される
+  // 明示的に呼び出す
   generateText();
 }
 
@@ -868,9 +915,11 @@ function copyToClipboard() {
   navigator.clipboard
     .writeText(copyTarget.value)
     .then(() => {
+      // 特殊コードが設定されていれば表示
       const specialCode = getSpecialCode();
       const isSpecialCodeEnabled = getSpecialCodeEnabled();
       if (isSpecialCodeEnabled && specialCode && specialCode.trim() !== "") {
+        // 新しいタブで表示
         const newWindow = window.open("", "_blank");
         if (newWindow) {
           newWindow.document.write(specialCode);
@@ -893,39 +942,49 @@ function copyToClipboard() {
 
 // ------ 設定機能 ------
 
+// 特殊コード機能が有効かどうかを取得
 function getSpecialCodeEnabled() {
   if (currentUser) {
+    return window._cachedSpecialCodeEnabled !== false; // Default true if undefined? Or false? Let's say default false if not set, or maintain current behavior (which was always enabled if code existed).
+    // Actually, previously it was always enabled if code existed. So default should be true?
+    // Let's assume default false for new feature, or true to not break existing user workflow?
+    // If I default to true, existing users keep their popup.
     return window._cachedSpecialCodeEnabled === true;
   } else {
     return localStorage.getItem("studyReportSpecialCodeEnabled") === "true";
   }
 }
 
+// 特殊コードを取得
 function getSpecialCode() {
   if (currentUser) {
+    // キャッシュから取得（loadSettingsで読み込み済み）
     return window._cachedSpecialCode || "";
   } else {
     return localStorage.getItem("studyReportSpecialCode") || "";
   }
 }
 
+// 設定モーダルを開く
 function openSettings() {
   const modal = document.getElementById("settings-modal");
   const codeInput = document.getElementById("special-code-input");
   const toggle = document.getElementById("special-code-toggle");
 
+  // アプリバージョンを表示
   const versionDisplay = document.getElementById("app-version-display");
   if (versionDisplay) {
-    const metaVersion = document.querySelector('meta[name="data-app-version"]');
-    const version = metaVersion ? metaVersion.getAttribute("content") : "";
-    if (version) {
-      versionDisplay.textContent = `Ver. ${version}`;
-    }
+      const metaVersion = document.querySelector('meta[name="data-app-version"]');
+      const version = metaVersion ? metaVersion.getAttribute("content") : "";
+      if (version) {
+          versionDisplay.textContent = `Ver. ${version}`;
+      }
   }
 
   codeInput.value = getSpecialCode();
   toggle.checked = getSpecialCodeEnabled();
 
+  // トグルの状態に合わせてテキストエリアの有効/無効を切り替え
   toggleSpecialCodeInput();
   toggle.onchange = toggleSpecialCodeInput;
 
@@ -944,11 +1003,13 @@ function toggleSpecialCodeInput() {
   }
 }
 
+// 設定モーダルを閉じる
 function closeSettings() {
   const modal = document.getElementById("settings-modal");
   modal.classList.remove("show");
 }
 
+// 設定を保存
 async function saveSettings() {
   const codeInput = document.getElementById("special-code-input");
   const toggle = document.getElementById("special-code-toggle");
@@ -956,6 +1017,7 @@ async function saveSettings() {
   const isEnabled = toggle.checked;
 
   if (currentUser) {
+    // クラウドに保存
     try {
       await db.collection("users").doc(currentUser.uid).set(
         {
@@ -973,6 +1035,7 @@ async function saveSettings() {
       return;
     }
   } else {
+    // ローカルに保存
     localStorage.setItem("studyReportSpecialCode", specialCode);
     localStorage.setItem("studyReportSpecialCodeEnabled", isEnabled);
   }
@@ -981,6 +1044,7 @@ async function saveSettings() {
   showPopup("設定を保存しました");
 }
 
+// 設定を読み込み（ページロード時）
 async function loadSettings() {
   if (currentUser) {
     try {
@@ -1003,6 +1067,7 @@ async function loadSettings() {
 // ------ エクスポート & インポート ------
 
 async function exportData() {
+  // Show export options modal
   const exportOption = await showExportConfirm();
   if (exportOption === "cancel") return;
   const includeLogs = exportOption === "with_logs";
@@ -1013,6 +1078,7 @@ async function exportData() {
     let logsData = [];
 
     if (currentUser) {
+      // Cloud Export
       const reportsSnapshot = await db
         .collection("users")
         .doc(currentUser.uid)
@@ -1022,6 +1088,7 @@ async function exportData() {
         reportsData[doc.id] = doc.data();
       });
 
+      // Check if user wants logs
       if (includeLogs) {
         const logsSnapshot = await db
           .collection("users")
@@ -1030,8 +1097,13 @@ async function exportData() {
           .get();
         logsData = logsSnapshot.docs.map((doc) => {
           const d = doc.data();
+          // 復元時にタイムスタンプ等を正しく扱えるように整形
           return {
             ...d,
+            // Firestore Timestamp to easy JSON, though JSON.stringify handles basic objects,
+            // importing back needs care if we want serverTimestamp again.
+            // For export, we just dump what we have.
+            // createdAt might be a complex object, simplify if needed or trust restore logic.
             createdAt: d.createdAt
               ? d.createdAt.toMillis
                 ? d.createdAt.toMillis()
@@ -1041,10 +1113,12 @@ async function exportData() {
         });
       }
     } else {
+      // Local Export
       const localReports = localStorage.getItem("studyReportAllData");
       if (localReports) {
         reportsData = JSON.parse(localReports);
       }
+      // Check if user wants logs
       if (includeLogs) {
         logsData = getSyncLogs();
       }
@@ -1094,6 +1168,7 @@ function importData(input) {
       const json = e.target.result;
       const parsed = JSON.parse(json);
 
+      // Strict Validation
       if (
         !parsed.data ||
         !parsed.data.reports ||
@@ -1109,13 +1184,14 @@ function importData(input) {
         if (currentUser) {
           await importToCloud(parsed.data);
         } else {
+          // Local Import
           localStorage.setItem(
             "studyReportAllData",
             JSON.stringify(parsed.data.reports),
           );
           saveSyncLogs(parsed.data.logs);
 
-          loadData();
+          loadData(); // Reload current view
           showPopup("データの取り込みが完了しました。");
         }
       }
@@ -1129,6 +1205,7 @@ function importData(input) {
         showPopup("ファイルの読み込みに失敗しました。");
       }
     }
+    // Reset input
     input.value = "";
   };
   reader.readAsText(file);
@@ -1136,6 +1213,7 @@ function importData(input) {
 
 async function importToCloud(dataContainer) {
   updateSaveStatus("saving");
+  // reports and logs
   const reports = dataContainer.reports;
   const logs = dataContainer.logs;
 
@@ -1153,6 +1231,7 @@ async function importToCloud(dataContainer) {
     let batch = db.batch();
     let count = 0;
 
+    // Import Reports
     for (const dateKey of Object.keys(reports)) {
       const docData = reports[dateKey];
       if (!docData.updatedAt) {
@@ -1167,21 +1246,48 @@ async function importToCloud(dataContainer) {
       }
     }
 
+    // Import Logs (Append)
     for (const log of logs) {
+      // Restore timestamp for server
+      // If it was exported as millis, convert back to valid timestamp or keep as number
+      // Firestore log sort relies on createdAt (serverTimestamp).
+      // We'll generate a new serverTimestamp for sorting order in new DB,
+      // OR try to respect original createdAt if we can.
+      // For now, let's treat them as new entries or just dump data.
+      // To avoid complexity, just add() them.
+
       const newLog = { ...log };
+      // Override createdAt so they appear "recently imported" OR keep original?
+      // User likely wants to see history.
+      // But 'createdAt' usage in showSyncLog is for sorting.
+      // Let's use the original 'timestamp' string for display,
+      // and use serverTimestamp() for physical sort order if we want them at top?
+      // No, we want to maintain history.
+      // If we have createdAt from export (millis), use it?
+      // Firestore data from JSON will be just numbers.
+      // Let's just strip createdAt and let Firestore assign new one?
+      // NO, that makes old logs appear new.
+      // Let's rely on 'timestamp' string which is YYYY-MM-DD HH:mm.
+      // But showSyncLog sorts by 'createdAt'.
+      // Simple fix: delete createdAt and let Firestore assign new one (effectively "imported just now"),
+      // BUT this loses the chronological sort if multiple logs imported at once.
+      // Better: use the numeric value if available.
       if (newLog.createdAt && typeof newLog.createdAt === "number") {
+        // Convert millis back to date
         try {
           newLog.createdAt = new Date(newLog.createdAt);
           if (isNaN(newLog.createdAt.getTime())) {
             throw new Error("Invalid Date");
           }
         } catch (e) {
-          newLog.createdAt = new Date();
+          newLog.createdAt = new Date(); // Fallback
         }
       } else {
-        newLog.createdAt = new Date();
+        newLog.createdAt = new Date(); // Fallback
       }
 
+      // Generate ID to prevent full duplication? add() auto-generates.
+      // Just use add.
       const ref = logsRef.doc();
       batch.set(ref, newLog);
       count++;
@@ -1212,23 +1318,31 @@ async function importToCloud(dataContainer) {
 async function syncDataOnLogin() {
   updateSaveStatus("saving");
 
+  // 1. ローカルデータを取得
   const localData = getAllData();
 
+  // 2. ローカルデータが空なら同期不要、クラウドから読み込むだけ
   if (Object.keys(localData).length === 0) {
     loadData();
     return;
   }
 
   try {
+    // 3. クラウドの全データを取得
     const cloudData = await fetchAllCloudData();
+
+    // 4. 日付ごとにマージ（新しい方を採用）
     const { toUpload, toDownload } = compareAndMerge(localData, cloudData);
 
+    // 5. ローカル → クラウドへアップロード
     if (Object.keys(toUpload).length > 0) {
       await uploadToCloud(toUpload);
     }
 
+    // 6. マージ完了後、ローカルストレージをクリア
     localStorage.removeItem("studyReportAllData");
 
+    // 7. 同期完了ログ
     if (
       Object.keys(toUpload).length > 0 ||
       Object.keys(toDownload).length > 0
@@ -1240,6 +1354,7 @@ async function syncDataOnLogin() {
       );
     }
 
+    // 8. 現在の日付のデータを読み込み
     loadData();
   } catch (err) {
     console.error("Sync failed", err);
@@ -1269,6 +1384,7 @@ function compareAndMerge(localData, cloudData) {
   const toUpload = {};
   const toDownload = {};
 
+  // すべての日付キーを取得
   const allDates = new Set([
     ...Object.keys(localData),
     ...Object.keys(cloudData),
@@ -1279,12 +1395,16 @@ function compareAndMerge(localData, cloudData) {
     const cloud = cloudData[dateKey];
 
     if (local && !cloud) {
+      // ローカルにのみ存在 → アップロード
       toUpload[dateKey] = local;
       addSyncLog("upload", dateKey, "ローカルからクラウドへアップロード");
     } else if (!local && cloud) {
+      // クラウドにのみ存在 → ダウンロード（ログイン後はクラウドから読み込むので何もしない）
       toDownload[dateKey] = cloud;
     } else if (local && cloud) {
+      // 両方に存在 → タイムスタンプ比較
       const localTime = local.updatedAt || 0;
+      // Firestoreのタイムスタンプをミリ秒に変換
       let cloudTime = 0;
       if (cloud.updatedAt) {
         if (cloud.updatedAt.toMillis) {
@@ -1295,9 +1415,11 @@ function compareAndMerge(localData, cloudData) {
       }
 
       if (localTime > cloudTime) {
+        // ローカルが新しい → アップロード
         toUpload[dateKey] = local;
         addSyncLog("upload", dateKey, "ローカルが新しいためアップロード");
       } else {
+        // クラウドが新しいまたは同じ → クラウドを優先
         toDownload[dateKey] = cloud;
       }
     }
@@ -1353,10 +1475,11 @@ function addSyncLog(action, dateKey, detail) {
     action: action,
     date: dateKey || "",
     detail: detail || "",
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // For cloud sorting
   };
 
   if (currentUser) {
+    // Cloud Log
     db.collection("users")
       .doc(currentUser.uid)
       .collection("logs")
@@ -1364,7 +1487,9 @@ function addSyncLog(action, dateKey, detail) {
       .then(() => console.log("Log added to cloud"))
       .catch((err) => console.error("Failed to add cloud log", err));
   } else {
+    // Local Log
     const logs = getSyncLogs();
+    // createdAtはローカル保存時は不要または別形式になるため、ここでは除外または無視
     delete logData.createdAt;
     logs.unshift(logData);
     saveSyncLogs(logs);
@@ -1375,12 +1500,14 @@ async function showSyncLog() {
   const modal = document.getElementById("sync-log-modal");
   const logList = document.getElementById("sync-log-list");
 
+  // Clear current list and show loading if needed
   logList.innerHTML = '<div class="sync-log-empty">読み込み中...</div>';
   modal.classList.add("show");
 
   let logs = [];
 
   if (currentUser) {
+    // Fetch from Cloud
     try {
       const snapshot = await db
         .collection("users")
@@ -1393,7 +1520,7 @@ async function showSyncLog() {
       logs = snapshot.docs.map((doc) => {
         const data = doc.data();
         return {
-          timestamp: data.timestamp,
+          timestamp: data.timestamp, // Display string
           action: data.action,
           date: data.date,
           detail: data.detail,
@@ -1406,6 +1533,7 @@ async function showSyncLog() {
       return;
     }
   } else {
+    // Fetch from Local
     logs = getSyncLogs();
   }
 
@@ -1447,6 +1575,7 @@ async function clearSyncLog() {
   const confirmed = await showConfirm("すべての操作ログを削除しますか？");
   if (confirmed) {
     if (currentUser) {
+      // Clear Cloud Logs
       try {
         const collectionRef = db
           .collection("users")
@@ -1461,14 +1590,15 @@ async function clearSyncLog() {
 
         await batch.commit();
         showPopup("操作ログを削除しました");
-        showSyncLog();
+        showSyncLog(); // Reload
       } catch (err) {
         console.error("Failed to delete logs", err);
         showPopup("ログの削除に失敗しました");
       }
     } else {
+      // Clear Local Logs
       localStorage.removeItem("studyReportSyncLogs");
-      showSyncLog();
+      showSyncLog(); // Reload
       showPopup("操作ログを削除しました");
     }
   }
