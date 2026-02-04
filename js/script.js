@@ -38,7 +38,7 @@ function showPopup(message) {
   modal.addEventListener("click", handleBackdropClick);
 }
 
-// --- カスタム確認ダイアログ関数 ---
+// --- カスタム確認ダイアログ関数 (Promiseベース) ---
 function showConfirm(message) {
   return new Promise((resolve) => {
     const modal = document.getElementById("confirm-modal");
@@ -194,17 +194,9 @@ let saveTimer = null;
 let isSaving = false;
 let isLoading = false;
 
-// =========================================================
-// [重要修正] 初期化ロジック
-// iPad PWAでのリダイレクト戻り漏れを防ぐため、
-// 起動直後にPersistenceを設定し、リダイレクト結果を明示的にチェックします。
-// =========================================================
 window.onload = () => {
-  // 1. まず永続性設定をLOCAL（維持）にする
+  // 初期化時に永続性を設定
   auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-    .then(() => {
-      console.log("Persistence set to LOCAL");
-    })
     .catch((err) => console.error("Persistence error", err));
 
   const now = new Date();
@@ -222,43 +214,19 @@ window.onload = () => {
     autoResize(globalCommentInput);
   }
 
-  // 2. 認証状態の監視 (これがメイン)
+  // 認証状態の監視
   auth.onAuthStateChanged((user) => {
     currentUser = user;
     updateAuthUI(user);
     if (user) {
-      // ログイン済み
       syncDataOnLogin();
       loadViewModePreference();
       loadSettings();
     } else {
-      // 未ログイン（またはリダイレクト待ち）
       loadData();
       loadViewModePreference();
     }
   });
-
-  // 3. リダイレクト結果の取得 (iPad PWA対策)
-  // アプリに戻ってきたときに、ここでユーザー情報が取れるか確認します
-  auth
-    .getRedirectResult()
-    .then((result) => {
-      if (result.user) {
-        console.log("Redirect login successful", result.user);
-        // ここでポップアップを出して、成功したことをユーザーに伝えます
-        showPopup("ログインに成功しました！");
-        currentUser = result.user;
-        updateAuthUI(result.user);
-        syncDataOnLogin();
-      } else {
-        // リダイレクト戻りではない、または情報が取れなかった場合
-        // 何もしない
-      }
-    })
-    .catch((error) => {
-      console.error("Redirect login failed", error);
-      showPopup("ログイン処理エラー: " + error.message);
-    });
 };
 
 window.addEventListener("beforeunload", (e) => {
@@ -311,9 +279,9 @@ function updateAuthUI(user) {
 }
 
 // =========================================================
-// [最終修正] ログイン処理
-// iPad/スマホはリダイレクトを使用。
-// window.onloadでPersistenceを設定済みなので、ここはシンプルに実行のみ。
+// [iPad PWA 最終解決策] 即時ポップアップ版
+// 確認ダイアログを挟むとブロックされるため、iPad/スマホでは
+// ボタンクリック直後に認証を実行します。
 // =========================================================
 function login() {
   const message = "ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？";
@@ -321,16 +289,32 @@ function login() {
   const isIpad = /Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints && navigator.maxTouchPoints > 1;
   const isMobileUA = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  // モバイル・iPadの場合
+  // iPad または スマホの場合
   if (isIpad || isMobileUA) {
-    if (window.confirm(message)) {
-      // 標準confirmを使用し、間髪入れずにリダイレクト
-      auth.signInWithRedirect(provider);
-    }
+    // 【重要】確認ダイアログ(confirm)を出さずに、いきなりログインを実行します。
+    // これにより「ユーザーがボタンを押した」という判定が継続し、
+    // 白い画面にならずにGoogleログイン画面が開くはずです。
+    // また、リダイレクトではなくポップアップを使うことで、セッション切れも防ぎます。
+    
+    // 念のためPersistenceを設定してから実行
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .then(() => {
+        return auth.signInWithPopup(provider);
+      })
+      .then((result) => {
+        showPopup("ログイン成功！");
+        // 成功時の処理は onAuthStateChanged が行います
+      })
+      .catch((err) => {
+        console.error("Login failed", err);
+        // ポップアップがそれでもブロックされる、または閉じられた場合
+        showPopup("ログインできませんでした: " + err.message);
+      });
+    
     return;
   }
 
-  // PCの場合
+  // --- PCの場合は今まで通りおしゃれな画面を使用 ---
   const modal = document.getElementById("confirm-modal");
   const messageEl = document.getElementById("confirm-message");
   const okBtn = document.getElementById("confirm-ok-btn");
