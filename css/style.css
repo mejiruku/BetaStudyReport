@@ -397,34 +397,39 @@ textarea {
 }
 
 .popup-btn {
-  background: linear-gradient(135deg, #4caf50, #45a049);
+  background-color: #4caf50;
   color: white;
   border: none;
-  padding: 12px 40px;
-  border-radius: 6px;
-  font-size: 1em;
-  font-weight: bold;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: normal;
   cursor: pointer;
-  transition:
-    transform 0.15s,
-    box-shadow 0.15s;
+  transition: opacity 0.2s;
+  min-width: 120px;
+  flex: 1;
+  text-align: center;
 }
 
 .popup-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  /* No special hover effect to match main buttons, or maybe opacity?
+     Main buttons don't have hover defined in shared block, only active.
+     But let's keep it simple. */
+  transform: none;
+  box-shadow: none;
 }
 
 .popup-btn:active {
-  transform: translateY(0);
+  opacity: 0.7;
+  transform: none;
 }
 
 .popup-btn.cancel {
-  background: linear-gradient(135deg, #9e9e9e, #757575);
+  background-color: #999;
 }
 
 .popup-btn.cancel:hover {
-  box-shadow: 0 4px 12px rgba(158, 158, 158, 0.4);
+  box-shadow: none;
 }
 
 .confirm-buttons {
@@ -781,4 +786,3 @@ textarea {
 }
 
 /* ====== 特殊コード表示関連（廃止されたため削除） ====== */
-
