@@ -198,6 +198,15 @@ let isLoading = false; // Flag to prevent auto-save during initial load
 
 // デフォルトの日付を今日に設定 & Auth監視
 window.onload = () => {
+  // Persistenceを明示的にLOCALに設定（PWAでのログイン維持のため）
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    .then(() => {
+      console.log("Auth persistence set to LOCAL");
+    })
+    .catch((error) => {
+      console.error("Failed to set auth persistence", error);
+    });
+
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const dateInputElement = document.getElementById("report-date");
@@ -238,20 +247,26 @@ window.onload = () => {
   auth
     .getRedirectResult()
     .then((result) => {
-      if (result.credential) {
-        // This gives you a Google Access Token. You can use it to access the Google API.
-        var token = result.credential.accessToken;
-      }
-      // The signed-in user info.
-      var user = result.user;
-      if (user) {
-        console.log("Redirect login successful", user);
-        // onAuthStateChanged will handle the rest
+      if (result && result.user) {
+        console.log("Redirect login successful", result.user);
+        // onAuthStateChanged will handle the UI update
+      } else {
+        // No result found (normal page load)
+        console.log("No redirect result found");
       }
     })
     .catch((error) => {
       console.error("Redirect login failed", error);
-      showPopup("ログインに失敗しました(Redirect): " + error.message);
+      // 詳細なエラーメッセージを表示するように強化
+      let errorMessage = "ログインに失敗しました。";
+      if (error.code === 'auth/web-storage-unsupported') {
+        errorMessage = "Webストレージがサポートされていないか、プライベートモードの可能性があります。";
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = "Googleログインが有効になっていません。";
+      } else {
+        errorMessage += "\n理由: " + error.message;
+      }
+      showPopup(errorMessage);
     });
 };
 
@@ -314,11 +329,12 @@ async function login() {
   );
   if (confirmed) {
     // Check for mobile/tablet UA
-    // Also check for iPad (Macintosh + Touch)
+    // Also check for iPad (Macintosh + Touch) or Macintosh with touch support
     const isMobile =
       /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent,
       ) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
       (navigator.userAgent.includes("Macintosh") &&
         navigator.maxTouchPoints &&
         navigator.maxTouchPoints > 0);
