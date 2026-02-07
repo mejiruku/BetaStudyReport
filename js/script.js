@@ -314,27 +314,17 @@ async function login() {
   );
   if (confirmed) {
     // Check for mobile/tablet UA
-    const isMobile =
-      /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-        navigator.userAgent,
-      );
-
-    if (isMobile) {
-      // Use Redirect for Mobile/Tablet (Better for PWA)
-      auth.signInWithRedirect(provider);
-    } else {
-      // Use Popup for Desktop
-      auth
-        .signInWithPopup(provider)
-        .then(() => {
-          // Successful login will trigger onAuthStateChanged
-          // which handles the data wiping.
-        })
-        .catch((err) => {
-          console.error("Login failed", err);
-          showPopup("ログインに失敗しました");
-        });
-    }
+    // Use Popup for All Devices (Unified behavior)
+    auth
+      .signInWithPopup(provider)
+      .then(() => {
+        // Successful login will trigger onAuthStateChanged
+        // which handles the data wiping.
+      })
+      .catch((err) => {
+        console.error("Login failed", err);
+        showPopup("ログインに失敗しました");
+      });
   }
 }
 
@@ -974,11 +964,11 @@ function openSettings() {
   // アプリバージョンを表示
   const versionDisplay = document.getElementById("app-version-display");
   if (versionDisplay) {
-      const metaVersion = document.querySelector('meta[name="data-app-version"]');
-      const version = metaVersion ? metaVersion.getAttribute("content") : "";
-      if (version) {
-          versionDisplay.textContent = `Ver. ${version}`;
-      }
+    const metaVersion = document.querySelector('meta[name="data-app-version"]');
+    const version = metaVersion ? metaVersion.getAttribute("content") : "";
+    if (version) {
+      versionDisplay.textContent = `Ver. ${version}`;
+    }
   }
 
   codeInput.value = getSpecialCode();
