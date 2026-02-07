@@ -438,6 +438,31 @@ function performEmailSignUp() {
     });
 }
 
+function performPasswordReset() {
+  const email = document.getElementById("login-email").value.trim();
+
+  if (!email) {
+    showPopup("メールアドレスを入力してください");
+    return;
+  }
+
+  auth
+    .sendPasswordResetEmail(email)
+    .then(() => {
+      showPopup("パスワード再設定メールを送信しました。\nメールをご確認ください。");
+    })
+    .catch((err) => {
+      console.error("Password reset failed", err);
+      if (err.code === "auth/user-not-found") {
+        showPopup("このメールアドレスは登録されていません");
+      } else if (err.code === "auth/invalid-email") {
+        showPopup("メールアドレスの形式が正しくありません");
+      } else {
+        showPopup("メール送信に失敗しました: " + err.message);
+      }
+    });
+}
+
 // イベントリスナーをDOMContentLoadedで設定
 document.addEventListener("DOMContentLoaded", function () {
   const googleLoginBtn = document.getElementById("google-login-btn");
@@ -445,6 +470,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const emailSigninBtn = document.getElementById("email-signin-btn");
   const emailSignupBtn = document.getElementById("email-signup-btn");
   const backToMethodsBtn = document.getElementById("back-to-methods-btn");
+  const forgotPasswordBtn = document.getElementById("forgot-password-btn");
 
   if (googleLoginBtn) {
     googleLoginBtn.addEventListener("click", performGoogleLogin);
@@ -460,6 +486,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   if (backToMethodsBtn) {
     backToMethodsBtn.addEventListener("click", showMethodSelect);
+  }
+  if (forgotPasswordBtn) {
+    forgotPasswordBtn.addEventListener("click", performPasswordReset);
   }
 });
 

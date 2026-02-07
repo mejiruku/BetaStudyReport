@@ -888,6 +888,21 @@ textarea {
   color: #333;
 }
 
+.forgot-link {
+  background: none;
+  border: none;
+  color: #2196f3;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 5px 0;
+  text-decoration: underline;
+  margin-left: 15px;
+}
+
+.forgot-link:hover {
+  color: #1976d2;
+}
+
 @media (max-width: 480px) {
   .login-modal-content {
     width: calc(100% - 20px);
