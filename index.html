@@ -23,7 +23,7 @@
                 <button id="settings-btn" onclick="openSettings()" class="settings-btn" title="設定">⚙️</button>
                 <img id="user-icon" src="" alt="" style="width: 28px; height: 28px; border-radius: 50%; display: none; object-fit: cover;">
                 <span id="user-display" style="font-size: 0.9em; display: none;"></span>
-                <button id="login-btn" onclick="login()" class="auth-btn login">Googleでログイン</button>
+                <button id="login-btn" onclick="login()" class="auth-btn login">ログイン</button>
                 <button id="logout-btn" onclick="logout()" class="auth-btn logout" style="display: none;">ログアウト</button>
             </div>
         </div>
@@ -122,6 +122,39 @@
                 <button onclick="closeSettings()" class="popup-btn cancel">キャンセル</button>
                 <button onclick="saveSettings()" class="popup-btn">保存</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="popup-overlay">
+        <div class="popup-content login-modal-content">
+            <h3 style="margin-top: 0; color: #006680;">ログイン</h3>
+            <div id="login-method-select" class="login-method-section">
+                <button id="google-login-btn" class="login-method-btn google">
+                    <span class="login-icon">G</span>
+                    Googleでログイン
+                </button>
+                <button id="email-login-btn" class="login-method-btn email">
+                    <span class="login-icon">✉</span>
+                    メール / パスワード
+                </button>
+            </div>
+            <div id="email-login-form" class="email-login-form" style="display: none;">
+                <div class="form-group">
+                    <label for="login-email">メールアドレス</label>
+                    <input type="email" id="login-email" placeholder="example@mail.com">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">パスワード</label>
+                    <input type="password" id="login-password" placeholder="パスワード">
+                </div>
+                <div class="email-login-buttons">
+                    <button id="email-signin-btn" class="popup-btn">ログイン</button>
+                    <button id="email-signup-btn" class="popup-btn signup">新規登録</button>
+                </div>
+                <button id="back-to-methods-btn" class="back-link">← 戻る</button>
+            </div>
+            <button onclick="closeLoginModal()" class="popup-btn cancel" style="margin-top: 15px; width: 100%;">キャンセル</button>
         </div>
     </div>
 

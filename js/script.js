@@ -307,26 +307,161 @@ function updateAuthUI(user) {
   }
 }
 
+// ====== ログインモーダル関連 ======
+let loginConfirmed = false;
+
+function openLoginModal() {
+  const modal = document.getElementById("login-modal");
+  const methodSelect = document.getElementById("login-method-select");
+  const emailForm = document.getElementById("email-login-form");
+
+  // Reset modal state
+  methodSelect.style.display = "flex";
+  emailForm.style.display = "none";
+  document.getElementById("login-email").value = "";
+  document.getElementById("login-password").value = "";
+
+  modal.classList.add("show");
+}
+
+function closeLoginModal() {
+  const modal = document.getElementById("login-modal");
+  modal.classList.remove("show");
+  loginConfirmed = false;
+}
+
+function showEmailForm() {
+  const methodSelect = document.getElementById("login-method-select");
+  const emailForm = document.getElementById("email-login-form");
+  methodSelect.style.display = "none";
+  emailForm.style.display = "block";
+}
+
+function showMethodSelect() {
+  const methodSelect = document.getElementById("login-method-select");
+  const emailForm = document.getElementById("email-login-form");
+  methodSelect.style.display = "flex";
+  emailForm.style.display = "none";
+}
+
 async function login() {
   // Warning before login
   const confirmed = await showConfirm(
     "ログインすると、現在ローカルに保存されているすべてのデータは削除され、クラウド上のデータに置き換わります。\n本当によろしいですか？",
   );
   if (confirmed) {
-    // Check for mobile/tablet UA
-    // Use Popup for All Devices (Unified behavior)
-    auth
-      .signInWithPopup(provider)
-      .then(() => {
-        // Successful login will trigger onAuthStateChanged
-        // which handles the data wiping.
-      })
-      .catch((err) => {
-        console.error("Login failed", err);
-        showPopup("ログインに失敗しました");
-      });
+    loginConfirmed = true;
+    openLoginModal();
   }
 }
+
+function performGoogleLogin() {
+  if (!loginConfirmed) return;
+
+  closeLoginModal();
+  auth
+    .signInWithPopup(provider)
+    .then(() => {
+      // Successful login will trigger onAuthStateChanged
+    })
+    .catch((err) => {
+      console.error("Google login failed", err);
+      showPopup("Googleログインに失敗しました");
+    });
+}
+
+function performEmailSignIn() {
+  if (!loginConfirmed) return;
+
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+
+  if (!email || !password) {
+    showPopup("メールアドレスとパスワードを入力してください");
+    return;
+  }
+
+  closeLoginModal();
+  auth
+    .signInWithEmailAndPassword(email, password)
+    .then(() => {
+      // Successful login will trigger onAuthStateChanged
+    })
+    .catch((err) => {
+      console.error("Email login failed", err);
+      if (err.code === "auth/user-not-found") {
+        showPopup("このメールアドレスは登録されていません");
+      } else if (err.code === "auth/wrong-password") {
+        showPopup("パスワードが間違っています");
+      } else if (err.code === "auth/invalid-email") {
+        showPopup("メールアドレスの形式が正しくありません");
+      } else {
+        showPopup("ログインに失敗しました: " + err.message);
+      }
+    });
+}
+
+function performEmailSignUp() {
+  if (!loginConfirmed) return;
+
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+
+  if (!email || !password) {
+    showPopup("メールアドレスとパスワードを入力してください");
+    return;
+  }
+
+  if (password.length < 6) {
+    showPopup("パスワードは6文字以上にしてください");
+    return;
+  }
+
+  closeLoginModal();
+  auth
+    .createUserWithEmailAndPassword(email, password)
+    .then(() => {
+      showPopup("アカウントを作成しました！");
+      // Successful signup will trigger onAuthStateChanged
+    })
+    .catch((err) => {
+      console.error("Email signup failed", err);
+      if (err.code === "auth/email-already-in-use") {
+        showPopup("このメールアドレスは既に使用されています");
+      } else if (err.code === "auth/invalid-email") {
+        showPopup("メールアドレスの形式が正しくありません");
+      } else if (err.code === "auth/weak-password") {
+        showPopup("パスワードが弱すぎます。6文字以上にしてください");
+      } else {
+        showPopup("アカウント作成に失敗しました: " + err.message);
+      }
+    });
+}
+
+// イベントリスナーをDOMContentLoadedで設定
+document.addEventListener("DOMContentLoaded", function () {
+  const googleLoginBtn = document.getElementById("google-login-btn");
+  const emailLoginBtn = document.getElementById("email-login-btn");
+  const emailSigninBtn = document.getElementById("email-signin-btn");
+  const emailSignupBtn = document.getElementById("email-signup-btn");
+  const backToMethodsBtn = document.getElementById("back-to-methods-btn");
+
+  if (googleLoginBtn) {
+    googleLoginBtn.addEventListener("click", performGoogleLogin);
+  }
+  if (emailLoginBtn) {
+    emailLoginBtn.addEventListener("click", showEmailForm);
+  }
+  if (emailSigninBtn) {
+    emailSigninBtn.addEventListener("click", performEmailSignIn);
+  }
+  if (emailSignupBtn) {
+    emailSignupBtn.addEventListener("click", performEmailSignUp);
+  }
+  if (backToMethodsBtn) {
+    backToMethodsBtn.addEventListener("click", showMethodSelect);
+  }
+});
 
 async function logout() {
   const confirmed = await showConfirm("ログアウトしますか？");
