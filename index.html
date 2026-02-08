@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="2.0.0.bata5">
-    <link rel="stylesheet" href="./css/style.css?v=2.0.0.bata5">
+    <meta name="data-app-version" content="2.0.0.bata6">
+    <link rel="stylesheet" href="./css/style.css?v=2.0.0.bata6">
     <link rel="manifest" href="./manifest.json?v=1.1.1">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -253,38 +253,7 @@
         </div>
     </div>
 
-    <!-- Login Modal -->
-    <div id="login-modal" class="popup-overlay">
-        <div class="popup-content login-modal-content">
-            <h3 style="margin-top: 0; color: #006680;">ログイン</h3>
-            <div id="login-method-select" class="login-method-section">
-                <button id="google-login-btn" class="login-method-btn google" onclick="performGoogleLogin()">
-                    <span class="login-icon">G</span>
-                    Googleでログイン
-                </button>
-                <button id="email-login-btn" class="login-method-btn email" onclick="showEmailForm()">
-                    <span class="login-icon">✉</span>
-                    メール / パスワード
-                </button>
-            </div>
-            <div id="email-login-form" class="email-login-form" style="display: none;">
-                <div class="form-group">
-                    <label for="login-email">メールアドレス</label>
-                    <input type="email" id="login-email" placeholder="example@mail.com">
-                </div>
-                <div class="form-group">
-                    <label for="login-password">パスワード</label>
-                    <input type="password" id="login-password" placeholder="パスワード">
-                </div>
-                <div class="email-login-buttons">
-                    <button id="email-signin-btn" class="popup-btn" onclick="performEmailSignIn()">ログイン</button>
-                    <button id="email-signup-btn" class="popup-btn signup" onclick="performEmailSignUp()">新規登録</button>
-                </div>
-                <button id="back-to-methods-btn" class="back-link" onclick="showMethodSelect()">← 戻る</button>
-            </div>
-            <button onclick="closeLoginModal()" class="popup-btn cancel" style="margin-top: 15px; width: 100%;">キャンセル</button>
-        </div>
-    </div>
+
 
     <!-- 学習記録 Modal -->
     <div id="record-modal" class="popup-overlay">
@@ -402,7 +371,7 @@
     <script src="./js/firebase-init.js?v=custom"></script>
 
     <!-- App Logic -->
-    <script src="./js/script.js?v=2.0.0.bata5" async></script>
+    <script src="./js/script.js?v=2.0.0.bata6" async></script>
 </body>
 
 </html>

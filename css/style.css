@@ -360,14 +360,23 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 15px; /* gap追加 */
   margin-bottom: 20px;
   border: 1px solid #ddd;
   width: 100%;
+  padding: 15px 0; /* 太くする */
+  font-size: 16px; /* 文字大きく */
+  font-weight: bold;
+  border-radius: 6px; /* 角丸追加 */
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.auth-btn-google:hover {
+  background-color: #f5f5f5;
 }
 .auth-btn-google img {
-  width: 20px;
-  height: 20px;
+  width: 24px; /* アイコン少し大きく */
+  height: 24px;
 }
 
 .separator {
