@@ -166,16 +166,20 @@ function showExportConfirm() {
 // 認証機能
 // ======================================== 
 
+// ======================================== 
+// 認証機能
+// ======================================== 
+
 function login() {
-  openLoginModal();
+  // 廃止: 直接フォームを表示
 }
 
 function openLoginModal() {
-  document.getElementById('login-modal').classList.add('show');
+  // 廃止
 }
 
 function closeLoginModal() {
-  document.getElementById('login-modal').classList.remove('show');
+  // 廃止: Auth Guardが非表示になるので何もしない
 }
 
 function toggleAuthMode(mode) {
