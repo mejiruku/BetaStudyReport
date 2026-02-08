@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="2.0.0.bata2">
-    <link rel="stylesheet" href="./css/style.css?v=2.0.0.bata2">
+    <meta name="data-app-version" content="2.0.0.bata3">
+    <link rel="stylesheet" href="./css/style.css?v=2.0.0.bata3">
     <link rel="manifest" href="./manifest.json?v=1.1.1">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -368,6 +368,38 @@
         </div>
     </div>
 
+    <!-- ログイン Modal -->
+    <div id="login-modal" class="popup-overlay">
+        <div class="popup-content login-modal-content">
+            <h2 id="auth-modal-title" style="margin-top: 0; text-align: center; color: #444;">ログイン</h2>
+            
+            <button class="popup-btn auth-btn-google" onclick="performGoogleLogin()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                Googleでログイン
+            </button>
+
+            <div class="separator">または Emailで</div>
+
+            <div class="form-group">
+                <input type="email" id="auth-email" placeholder="メールアドレス">
+            </div>
+            <div class="form-group">
+                <input type="password" id="auth-password" placeholder="パスワード">
+            </div>
+
+            <button id="auth-action-btn" class="popup-btn" onclick="performEmailSignIn()">ログイン</button>
+            
+            <p class="switch-auth-link">
+                アカウントをお持ちでないですか？ <a onclick="toggleAuthMode('signup')">新規登録</a>
+            </p>
+            <p class="switch-auth-link">
+                <a onclick="resetPassword()">パスワードを忘れた場合</a>
+            </p>
+
+            <button onclick="closeLoginModal()" class="popup-btn cancel" style="margin-top: 10px;">キャンセル</button>
+        </div>
+    </div>
+
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -377,7 +409,7 @@
     <script src="./js/firebase-init.js?v=custom"></script>
 
     <!-- App Logic -->
-    <script src="./js/script.js?v=2.0.0.bata2" async></script>
+    <script src="./js/script.js?v=2.0.0.bata3" async></script>
 </body>
 
 </html>

@@ -163,6 +163,109 @@ function showExportConfirm() {
 }
 
 // ======================================== 
+// 認証機能
+// ======================================== 
+
+function login() {
+  openLoginModal();
+}
+
+function openLoginModal() {
+  document.getElementById('login-modal').classList.add('show');
+}
+
+function closeLoginModal() {
+  document.getElementById('login-modal').classList.remove('show');
+}
+
+function toggleAuthMode(mode) {
+  const title = document.getElementById('auth-modal-title');
+  const btn = document.getElementById('auth-action-btn');
+  const link = document.querySelector('.switch-auth-link');
+  
+  if (mode === 'signup') {
+    title.innerText = '新規登録';
+    btn.innerText = '登録して始める';
+    btn.onclick = performEmailSignUp;
+    link.innerHTML = `すでにアカウントをお持ちですか？ <a onclick="toggleAuthMode('login')">ログイン</a>`;
+  } else {
+    title.innerText = 'ログイン';
+    btn.innerText = 'ログイン';
+    btn.onclick = performEmailSignIn;
+    link.innerHTML = `アカウントをお持ちでないですか？ <a onclick="toggleAuthMode('signup')">新規登録</a>`;
+  }
+}
+
+async function performGoogleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+    closeLoginModal();
+  } catch (error) {
+    console.error("Login failed", error);
+    showPopup(`ログイン失敗: ${error.message}`);
+  }
+}
+
+async function performEmailSignIn() {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) {
+    showPopup('メールアドレスとパスワードを入力してください');
+    return;
+  }
+  try {
+    await auth.signInWithEmailAndPassword(email, password);
+    closeLoginModal();
+  } catch (error) {
+    console.error("Login failed", error);
+    showPopup(`ログイン失敗: ${error.message}`);
+  }
+}
+
+async function performEmailSignUp() {
+  const email = document.getElementById('auth-email').value;
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) {
+    showPopup('メールアドレスとパスワードを入力してください');
+    return;
+  }
+  try {
+    await auth.createUserWithEmailAndPassword(email, password);
+    closeLoginModal();
+    showPopup('アカウントを作成しました！');
+  } catch (error) {
+    console.error("Signup failed", error);
+    showPopup(`登録失敗: ${error.message}`);
+  }
+}
+
+async function resetPassword() {
+  const email = document.getElementById('auth-email').value;
+  if (!email) {
+    showPopup('パスワードリセットのため、メールアドレスを入力してください');
+    return;
+  }
+  try {
+    await auth.sendPasswordResetEmail(email);
+    showPopup(`パスワード再設定メールを送信しました: ${email}`);
+  } catch (error) {
+    console.error("Reset failed", error);
+    showPopup(`送信失敗: ${error.message}`);
+  }
+}
+
+async function logout() {
+  try {
+    await auth.signOut();
+    // ログアウト時はリロードして状態をリセット
+    window.location.reload();
+  } catch (error) {
+    console.error("Logout failed", error);
+  }
+}
+
+// ======================================== 
 // 初期化
 // ======================================== 
 
