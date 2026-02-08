@@ -1,456 +1,97 @@
 /* ======================================== */
-/* 全体の基本設定 */
+/* 全体の基本設定 (ユーザー指定ベース) */
 /* ======================================== */
-
-* {
-  box-sizing: border-box;
-}
 
 body {
   font-family:
     "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans",
     Meiryo, sans-serif;
   background-color: #f4f7f6;
+  padding: 20px;
   color: #333;
   margin: 0;
-  padding: 0;
-  min-height: 100vh;
+  padding-bottom: 80px; /* フッターナビゲーション用余白 */
 }
 
-/* ======================================== */
-/* 認証ガード画面 */
-/* ======================================== */
-
-.auth-guard {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.auth-guard-content {
-  text-align: center;
-  color: white;
-  padding: 40px;
-}
-
-.auth-guard-content h1 {
-  font-size: 2.5em;
-  margin-bottom: 10px;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.2);
-}
-
-.auth-guard-content p {
-  font-size: 1.2em;
-  opacity: 0.9;
-  margin-bottom: 30px;
-}
-
-.auth-guard-btn {
-  background: white;
-  color: #667eea;
-  border: none;
-  padding: 15px 40px;
-  font-size: 1.1em;
-  font-weight: bold;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-.auth-guard-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-}
-
-.auth-guard-btn:active {
-  transform: translateY(0);
-}
-
-/* ======================================== */
-/* メインアプリコンテナ */
-/* ======================================== */
-
-.app-container {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+.container {
   max-width: 800px;
   margin: 0 auto;
   background: #fff;
-  box-shadow: 0 0 20px rgba(0,0,0,0.1);
-}
-
-/* ======================================== */
-/* ヘッダー */
-/* ======================================== */
-
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 15px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.header-left h1 {
-  margin: 0;
-  font-size: 1.3em;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-}
-
-/* 保存ステータス */
-.save-status {
-  font-size: 0.8em;
-  padding: 3px 8px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.2);
-}
-.save-status.saving {
-  background: rgba(255,193,7,0.3);
-}
-.save-status.saved {
-  background: rgba(76,175,80,0.3);
-}
-.save-status.error {
-  background: rgba(244,67,54,0.3);
-}
-
-/* ユーザー情報 */
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.user-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid rgba(255,255,255,0.5);
-}
-
-.user-display {
-  font-size: 0.85em;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.header-settings-btn {
-  background: rgba(255,255,255,0.2);
-  border: none;
-  color: white;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.2em;
-  transition: background 0.2s;
-}
-
-.header-settings-btn:hover {
-  background: rgba(255,255,255,0.3);
-}
-
-/* ======================================== */
-/* ストップウォッチウィジェット */
-/* ======================================== */
-
-.stopwatch-widget {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.15);
-  padding: 5px 10px;
-  border-radius: 20px;
-}
-
-.stopwatch-display {
-  font-family: "Courier New", monospace;
-  font-size: 1.1em;
-  font-weight: bold;
-  min-width: 70px;
-  text-align: center;
-}
-
-.timer-input-area {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-#timer-minutes {
-  width: 50px;
-  padding: 2px 5px;
-  border: 1px solid rgba(255,255,255,0.3);
-  background: rgba(255,255,255,0.1);
-  color: white;
-  border-radius: 4px;
-  text-align: center;
-  font-size: 1em;
-}
-
-#timer-minutes::placeholder {
-  color: rgba(255,255,255,0.6);
-}
-
-.sw-btn, .sw-mode-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.1s;
-}
-
-.sw-mode-btn {
-  background: rgba(255,255,255,0.2);
-  color: white;
-  margin-right: 5px;
-}
-
-.sw-btn:active, .sw-mode-btn:active {
-  transform: scale(0.9);
-}
-
-.sw-btn.start {
-  background: #4CAF50;
-  color: white;
-}
-
-.sw-btn.pause {
-  background: #FF9800;
-  color: white;
-}
-
-.sw-btn.reset {
-  background: rgba(255,255,255,0.3);
-  color: white;
-}
-
-/* モードによるスタイル変化 */
-.stopwatch-widget.timer-mode {
-  background: rgba(255, 152, 0, 0.2); /* タイマーモード時は少しオレンジっぽく */
-}
-
-/* ======================================== */
-/* メインコンテンツ */
-/* ======================================== */
-
-.app-main {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 70px; /* フッター分の余白 */
-}
-
-.tab-content {
-  display: none;
-  padding: 15px;
-  animation: fadeIn 0.3s ease-out;
-}
-
-.tab-content.active {
-  display: block;
-}
-
-/* ======================================== */
-/* フッターナビゲーション */
-/* ======================================== */
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  max-width: 800px;
-  margin: 0 auto;
-  display: flex;
-  background: white;
-  border-top: 1px solid #eee;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-  z-index: 100;
-}
-
-.nav-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 5px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: #999;
-  transition: color 0.2s;
-}
-
-.nav-btn.active {
-  color: #667eea;
-}
-
-.nav-icon {
-  font-size: 1.4em;
-  margin-bottom: 3px;
-}
-
-.nav-label {
-  font-size: 0.7em;
-  font-weight: 500;
-}
-
-/* ======================================== */
-/* タイムラインタブ */
-/* ======================================== */
-
-.timeline-container {
-  max-width: 100%;
-}
-
-.timeline-container h2 {
-  color: #444;
-  margin-bottom: 20px;
-  margin-top: 0;
-}
-
-/* タイムラインリストのスタイルは既存のものを流用 */
-
-/* ======================================== */
-/* レポートタブ（旧 HOME） */
-/* ======================================== */
-
-.home-container {
-  max-width: 100%;
-}
-
-.report-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.report-header h3 {
-  margin: 0;
-  color: #006680;
-}
-
-.auto-generate-btn {
-  background: #667eea;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 20px;
-  font-size: 0.85em;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: opacity 0.2s;
-}
-
-.auto-generate-btn:active {
-  opacity: 0.8;
-}
-
-/* 日報セクション */
-.daily-report-section {
-  background: #f9f9f9;
-  border-radius: 12px;
   padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* 日付セクション */
-.date-section {
-  text-align: center;
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: #e3f2fd;
-  border-radius: 6px;
-  border: 1px solid #bbdefb;
-}
-
-#report-date {
-  font-size: 1.1em;
-  padding: 5px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+h2 {
+  text-align: left;
   color: #444;
+  margin: 0 0 20px 0;
 }
 
-/* 教科ごとの入力ブロック */
+/* ======================================== */
+/* Header & Auth Styles (ユーザー指定ベース) */
+/* ======================================== */
+
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.header-title-box {
+  display: flex;
+  align-items: baseline;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.save-status {
+  font-size: 0.9em;
+  color: #666;
+  font-weight: bold;
+}
+.save-status.saving { color: #2196f3; }
+.save-status.saved { color: #4caf50; }
+.save-status.error { color: #f44336; }
+
+.auth-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-btn {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.auth-btn.login {
+  background: #4285f4;
+  color: white;
+}
+
+.auth-btn.logout {
+  background: #ccc;
+  color: black;
+}
+
+/* ======================================== */
+/* 入力フォーム関連 (ユーザー指定ベース) */
+/* ======================================== */
+
 .subject-row {
   border: 1px solid #ddd;
   padding: 15px;
   margin-bottom: 15px;
   border-radius: 6px;
-  background-color: #fff;
+  background-color: #fafafa;
   position: relative;
-}
-
-.row-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.move-btns {
-  display: flex;
-  gap: 4px;
-}
-
-.move-btn {
-  background: #e0e0e0;
-  color: #333;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 4px 8px;
-  font-size: 12px;
-  line-height: 1;
-  transition: background-color 0.2s;
-}
-
-.move-btn:hover {
-  background: #bdbdbd;
 }
 
 .remove-btn {
@@ -480,7 +121,6 @@ input[type="email"],
 input[type="password"],
 input[type="number"],
 input[type="date"],
-input[type="datetime-local"],
 textarea {
   width: 100%;
   padding: 10px;
@@ -514,45 +154,39 @@ textarea {
 
 .time-inputs select {
   flex: 1;
-  min-width: 60px;
-  max-width: 100px;
+  min-width: 80px;
+  max-width: 120px;
 }
 
-/* 操作ボタンエリア */
+/* 操作ボタン */
 .controls {
   display: flex;
   justify-content: center;
   gap: 10px;
-  margin: 15px 0;
+  margin: 20px 0;
   flex-wrap: wrap;
 }
 
-.add-btn,
-.reset-btn {
+.add-btn, .reset-btn {
   padding: 12px 20px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   transition: opacity 0.2s;
+  min-width: 160px;
   flex: 1;
-  max-width: 200px;
+  max-width: 300px;
   text-align: center;
 }
 
-.add-btn {
-  background-color: #4caf50;
-  color: white;
-}
-
-.reset-btn {
-  background-color: #999;
-  color: white;
-}
+.add-btn { background-color: #4caf50; color: white; }
+.reset-btn { background-color: #999; color: white; }
+.add-btn:active, .reset-btn:active { opacity: 0.7; }
 
 /* 全体の感想エリア */
 .global-comment-section {
-  margin-top: 20px;
+  margin-top: 30px;
   background-color: #e8f4f8;
   padding: 15px;
   border-radius: 6px;
@@ -561,14 +195,14 @@ textarea {
 
 /* 結果表示エリア */
 .result-area {
-  margin-top: 20px;
+  margin-top: 30px;
   border-top: 2px solid #eee;
-  padding-top: 15px;
+  padding-top: 20px;
 }
 
 #output-text {
   width: 100%;
-  min-height: 200px;
+  height: 300px;
   padding: 10px;
   font-family: monospace;
   border: 1px solid #ccc;
@@ -586,7 +220,7 @@ textarea {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 18px;
   margin-bottom: 10px;
   font-weight: bold;
 }
@@ -594,80 +228,232 @@ textarea {
 .total-display {
   text-align: right;
   font-weight: bold;
-  font-size: 1.1em;
+  font-size: 1.2em;
   color: #008cba;
   margin-bottom: 10px;
+}
+
+/* 日付選択エリア */
+.date-section {
+  text-align: center;
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #e3f2fd;
+  border-radius: 6px;
+  border: 1px solid #bbdefb;
+}
+
+#report-date {
+  font-size: 1.2em;
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #444;
 }
 
 /* バックアップ操作エリア */
 .backup-controls {
   display: flex;
   justify-content: center;
-  gap: 10px;
-  margin-top: 20px;
-  padding-top: 15px;
+  gap: 15px;
+  margin-top: 30px;
+  padding-top: 20px;
   border-top: 1px dashed #ccc;
   flex-wrap: wrap;
 }
 
-.export-btn,
-.import-btn,
-.log-btn {
-  padding: 10px 15px;
+.export-btn, .import-btn {
+  padding: 10px 20px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   color: white;
   transition: background-color 0.2s;
+  min-width: 140px;
+}
+
+.export-btn { background-color: #ff9800; }
+.export-btn:hover { background-color: #f57c00; }
+.import-btn { background-color: #607d8b; }
+.import-btn:hover { background-color: #455a64; }
+
+/* スマホ対応 */
+@media (max-width: 480px) {
+  body { padding: 10px; padding-bottom: 70px; }
+  .container { padding: 15px; }
+  .header-container { flex-direction: column; align-items: stretch; gap: 10px; }
+  .header-title-box { justify-content: space-between; width: 100%; align-items: center; }
+  .header-title-box h2 { font-size: 1.3em; margin: 0; }
+  .auth-container { justify-content: flex-end; width: 100%; }
+  .controls { flex-direction: column; align-items: stretch; }
+  .add-btn, .reset-btn { max-width: none; width: 100%; }
+  .time-inputs select { max-width: none; }
+  .backup-controls { flex-direction: column; align-items: stretch; gap: 10px; }
+}
+
+/* ======================================== */
+/* モーダル (ユーザー指定ベース + 改善) */
+/* ======================================== */
+
+.popup-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.popup-overlay.show { display: flex; }
+
+.popup-content {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  animation: slideIn 0.3s ease-out;
+}
+
+.popup-btn {
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: normal;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  min-width: 120px;
   flex: 1;
-  min-width: 100px;
-  max-width: 150px;
   text-align: center;
 }
 
-.export-btn {
-  background-color: #ff9800;
-}
+.popup-btn:active { opacity: 0.7; }
+.popup-btn.cancel { background-color: #999; }
+.confirm-buttons { display: flex; gap: 15px; justify-content: center; }
 
-.import-btn {
-  background-color: #607d8b;
-}
-
-.log-btn {
-  background-color: #9c27b0;
-}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { opacity: 0; transform: translateY(-20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 /* ======================================== */
-/* 教材タブ */
+/* 認証画面専用スタイル */
 /* ======================================== */
 
-.materials-container {
-  max-width: 100%;
+.login-modal-content {
+  max-width: 400px;
+  width: 90%;
 }
 
-.materials-header {
+.auth-btn-google {
+  background: white;
+  color: #333;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  gap: 10px;
   margin-bottom: 20px;
+  border: 1px solid #ddd;
+  width: 100%;
+}
+.auth-btn-google img {
+  width: 20px;
+  height: 20px;
 }
 
-.materials-header h2 {
-  margin: 0;
-  color: #444;
-}
-
-.add-material-btn {
-  background: #667eea;
-  color: white;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 8px;
+.separator {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  color: #999;
   font-size: 0.9em;
+}
+.separator::before, .separator::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #ddd;
+}
+.separator::before { margin-right: 10px; }
+.separator::after { margin-left: 10px; }
+
+.switch-auth-link {
+  text-align: center;
+  margin-top: 15px;
+  font-size: 0.9em;
+  color: #666;
+}
+.switch-auth-link a {
+  color: #2196f3;
+  text-decoration: none;
   cursor: pointer;
 }
 
+/* ======================================== */
+/* 以下、機能追加のために既存CSSから補完 */
+/* ======================================== */
+
+/* --- タブ機能 --- */
+.tab-content {
+  display: none;
+  animation: fadeIn 0.3s ease-out;
+}
+.tab-content.active {
+  display: block;
+}
+
+/* --- フッターナビ --- */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  display: flex;
+  background: white;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  z-index: 100;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 5px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.nav-btn.active {
+  color: #2196f3;
+}
+
+.nav-icon {
+  font-size: 1.4em;
+  margin-bottom: 3px;
+}
+
+.nav-label {
+  font-size: 0.7em;
+  font-weight: 500;
+}
+
+/* --- 教材リスト --- */
 .materials-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -681,6 +467,8 @@ textarea {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #eee;
+  position: relative;
 }
 
 .material-card:hover {
@@ -692,10 +480,7 @@ textarea {
   width: 100%;
   height: 100px;
   object-fit: cover;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.material-image.placeholder {
+  background: #f5f5f5;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -721,62 +506,76 @@ textarea {
   color: #888;
 }
 
-/* ======================================== */
-/* 分析タブ */
-/* ======================================== */
-
-.stats-container {
-  max-width: 100%;
+.material-edit-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.stats-container h2 {
-  color: #444;
-  margin-top: 0;
-  margin-bottom: 20px;
+/* --- ストップウォッチ --- */
+.stopwatch-widget {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #f5f5f5;
+  padding: 5px 10px;
+  border-radius: 20px;
 }
 
-.stats-detail {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 30px;
-}
-
-.stats-detail-card {
-  background: white;
-  padding: 20px 10px;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.stats-detail-card h4 {
-  margin: 0 0 10px 0;
-  font-size: 0.8em;
-  color: #666;
-  font-weight: normal;
-}
-
-.stats-big-number {
-  font-size: 1.4em;
-  font-weight: bold;
-  color: #667eea;
-  margin: 0;
-}
-
-/* 週間グラフ */
-.weekly-chart-section {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.weekly-chart-section h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #444;
+.stopwatch-display {
+  font-family: monospace;
   font-size: 1em;
+  font-weight: bold;
+  min-width: 60px;
+  text-align: center;
+}
+
+.timer-input-area {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+#timer-minutes {
+  width: 40px;
+  padding: 2px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 1em;
+}
+
+.sw-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+.sw-btn.start { background: #4CAF50; }
+.sw-btn.pause { background: #FF9800; }
+.sw-btn.reset { background: #999; }
+.sw-mode-btn { background: #bbb; color: white; margin-right: 5px; }
+
+/* --- 分析チャート --- */
+.weekly-chart-section {
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  margin-top: 15px;
 }
 
 .weekly-chart {
@@ -784,8 +583,7 @@ textarea {
   align-items: flex-end;
   justify-content: space-between;
   height: 150px;
-  gap: 8px;
-  padding: 0 5px;
+  gap: 5px;
 }
 
 .chart-bar-container {
@@ -798,422 +596,73 @@ textarea {
 
 .chart-bar {
   width: 100%;
-  max-width: 40px;
+  flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  flex: 1;
+  background: #f0f0f0;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+  position: relative;
 }
 
 .chart-bar-segment {
   width: 100%;
-  min-height: 2px;
-  border-radius: 2px 2px 0 0;
   transition: height 0.3s;
 }
 
-.chart-bar-segment:first-child {
-  border-radius: 2px 2px 0 0;
-}
-
 .chart-day-label {
-  font-size: 0.7em;
+  font-size: 0.6em;
   color: #666;
   margin-top: 5px;
 }
 
-.chart-legend {
-  display: flex;
-  flex-wrap: wrap;
+.stats-detail {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #eee;
+  margin-bottom: 20px;
 }
 
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.8em;
-  color: #666;
+.stats-detail-card {
+  background: #f9f9f9;
+  padding: 15px 5px;
+  border-radius: 8px;
+  text-align: center;
 }
 
-.legend-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+.stats-big-number {
+  font-size: 1.2em;
+  font-weight: bold;
+  color: #2196f3;
+  margin: 5px 0 0 0;
 }
 
-/* ======================================== */
-/* 設定モーダル */
-/* ======================================== */
-
+/* --- 設定モーダル --- */
 .settings-modal-content {
-  max-width: 500px;
   text-align: left;
 }
-
-.settings-container-modal {
-  /* modal content wrapper */
+.settings-section {
+  margin-bottom: 20px;
 }
 
-.settings-container-modal h2 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  color: #444;
-  text-align: center;
-  font-size: 1.2em;
-}
-
-.settings-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-/* 元の設定スタイルは流用 */
-
-/* ======================================== */
-/* モーダル共通スタイル */
-/* ======================================== */
-
-.popup-overlay {
-  display: none;
+/* --- Auth Guard Adjustment --- */
+/* 紫背景を廃止し、Containerクラスの白背景を使用するために調整 */
+.auth-guard {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 10000;
+  right: 0;
+  bottom: 0;
+  background-color: #f4f7f6; /* bodyと同じ色 */
+  display: flex;
   justify-content: center;
   align-items: center;
-  animation: fadeIn 0.2s ease-out;
+  z-index: 9999;
 }
 
-.popup-overlay.show {
-  display: flex;
-}
-
-.popup-content {
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  text-align: center;
-  max-width: 400px;
+.auth-guard .container {
   width: 90%;
-  max-height: 85vh;
-  overflow-y: auto;
-  animation: slideIn 0.3s ease-out;
-}
-
-.popup-content p {
-  margin: 0 0 20px 0;
-  font-size: 1em;
-  color: #333;
-  line-height: 1.5;
-}
-
-.popup-btn {
-  background-color: #667eea;
-  color: white;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 6px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-  min-width: 100px;
-  flex: 1;
-}
-
-.popup-btn:active {
-  opacity: 0.7;
-}
-
-.popup-btn.cancel {
-  background-color: #999;
-}
-
-.confirm-buttons {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-/* 学習記録モーダル */
-.record-modal-content,
-.material-modal-content {
-  max-width: 450px;
-  text-align: left;
-}
-
-.record-select {
-  width: 100%;
-}
-
-.amount-input-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.amount-input-group input {
-  flex: 1;
-}
-
-#record-unit-label {
-  color: #666;
-  font-weight: 500;
-}
-
-/* 画像アップロード */
-.image-upload-area {
-  margin-top: 10px;
-}
-
-.image-preview {
-  margin-top: 10px;
-  max-width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.image-preview img {
-  width: 100%;
-  max-height: 150px;
-  object-fit: cover;
-}
-
-/* ログインモーダル */
-.login-modal-content {
-  max-width: 380px;
-}
-
-.login-method-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.login-method-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background: white;
-  font-size: 1em;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.login-method-btn:hover {
-  background: #f5f5f5;
-}
-
-.login-method-btn.google {
-  border-color: #4285f4;
-  color: #4285f4;
-}
-
-.login-method-btn.email {
-  border-color: #666;
-  color: #666;
-}
-
-.login-icon {
-  font-weight: bold;
-  font-size: 1.2em;
-}
-
-.email-login-form {
-  text-align: left;
-}
-
-.email-login-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.popup-btn.signup {
-  background-color: #4CAF50;
-}
-
-.back-link {
-  display: block;
+  max-width: 400px;
   text-align: center;
-  margin-top: 15px;
-  color: #666;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.9em;
-}
-
-/* ログモーダル */
-.log-modal-content {
-  max-width: 500px;
-  max-height: 80vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.sync-log-list {
-  max-height: 300px;
-  overflow-y: auto;
-  text-align: left;
-  margin-bottom: 15px;
-  border: 1px solid #eee;
-  border-radius: 6px;
-  padding: 10px;
-  background-color: #fafafa;
-}
-
-.sync-log-item {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  font-size: 0.85em;
-}
-
-.sync-log-item:last-child {
-  border-bottom: none;
-}
-
-.sync-log-item .log-time {
-  color: #666;
-  font-size: 0.85em;
-}
-
-.sync-log-item .log-action {
-  font-weight: bold;
-  margin-left: 5px;
-}
-
-.sync-log-item .log-action.upload { color: #4caf50; }
-.sync-log-item .log-action.download { color: #2196f3; }
-.sync-log-item .log-action.edit { color: #ff9800; }
-
-.sync-log-item .log-detail {
-  color: #555;
-  margin-top: 4px;
-}
-
-.sync-log-empty {
-  text-align: center;
-  color: #999;
-  padding: 30px;
-}
-
-/* ======================================== */
-/* アニメーション */
-/* ======================================== */
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* ======================================== */
-/* レスポンシブ対応 */
-/* ======================================== */
-
-@media (max-width: 480px) {
-  .app-header {
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .header-left {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .header-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .stopwatch-widget {
-    flex: 1;
-  }
-
-  .user-info {
-    display: none;
-  }
-
-  .stats-summary {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .stat-card {
-    padding: 10px 5px;
-  }
-
-  .stat-value {
-    font-size: 1em;
-  }
-
-  .stats-detail {
-    grid-template-columns: 1fr;
-  }
-
-  .materials-list {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .controls {
-    flex-direction: column;
-  }
-
-  .add-btn, .reset-btn {
-    max-width: none;
-  }
-
-  .backup-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .export-btn, .import-btn, .log-btn {
-    max-width: none;
-  }
-
-  .row-controls {
-    position: static;
-    margin-bottom: 10px;
-    justify-content: flex-end;
-  }
-
-  .popup-content {
-    padding: 20px 15px;
-    margin: 10px;
-    width: calc(100% - 20px);
-    max-width: none;
-  }
-
-  .confirm-buttons {
-    flex-direction: column;
-  }
-
-  .popup-btn {
-    width: 100%;
-  }
 }
