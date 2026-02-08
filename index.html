@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="2.0.0.bata">
-    <link rel="stylesheet" href="./css/style.css?v=2.0.0.bata">
+    <meta name="data-app-version" content="2.0.0.bata2">
+    <link rel="stylesheet" href="./css/style.css?v=2.0.0.bata2">
     <link rel="manifest" href="./manifest.json?v=1.1.1">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -55,6 +55,7 @@
                 <div class="user-info">
                     <img id="user-icon" src="" alt="" class="user-icon" style="display: none;">
                     <span id="user-display" class="user-display" style="display: none;"></span>
+                    <button id="header-settings-btn" class="header-settings-btn" onclick="openSettingsModal()" title="設定">⚙</button>
                 </div>
             </div>
         </header>
@@ -62,78 +63,11 @@
         <!-- メインコンテンツ (タブ切り替え) -->
         <main class="app-main">
             
-            <!-- ========== HOME タブ ========== -->
-            <div id="tab-home" class="tab-content active">
-                <div class="home-container">
-                    <!-- タイムライン・統計サマリー -->
-                    <section class="stats-summary">
-                        <div class="stat-card">
-                            <span class="stat-label">今日</span>
-                            <span id="stat-today" class="stat-value">0分</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">今月</span>
-                            <span id="stat-month" class="stat-value">0分</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">総計</span>
-                            <span id="stat-total" class="stat-value">0分</span>
-                        </div>
-                    </section>
-
-                    <!-- 学習記録ボタン -->
-                    <section class="quick-actions">
-                        <button class="record-btn" onclick="openRecordModal()">
-                            <span class="record-icon">📝</span>
-                            学習を記録する
-                        </button>
-                    </section>
-
-                    <!-- タイムライン -->
-                    <section class="timeline-section">
-                        <h3>最近の学習</h3>
-                        <div id="timeline-list" class="timeline-list">
-                            <p class="empty-message">まだ学習記録がありません</p>
-                        </div>
-                    </section>
-
-                    <!-- 既存の日報機能 -->
-                    <section class="daily-report-section">
-                        <h3>📧 日報作成</h3>
-                        <div class="date-section">
-                            <label for="report-date">日付: </label>
-                            <input type="date" id="report-date">
-                        </div>
-                        <div id="subjects-container"></div>
-                        <div class="controls">
-                            <button class="add-btn" onclick="addSubject()">＋ 教科を追加する</button>
-                            <button class="reset-btn" onclick="resetData()">この日の入力をクリア</button>
-                        </div>
-                        <div class="global-comment-section">
-                            <label style="font-size: 1.1em; color: #006680;">全体の感想・コメント</label>
-                            <textarea id="global-comment-text" placeholder="コメント" oninput="generateText()"></textarea>
-                        </div>
-                        <div class="result-area">
-                            <h3>メール本文</h3>
-                            <div class="total-display" id="screen-total">合計: 0時間 0分</div>
-                            <button class="copy-btn" onclick="copyToClipboard()">コピーする</button>
-                            <textarea id="output-text" readonly></textarea>
-                        </div>
-                        <div class="backup-controls">
-                            <button onclick="exportData()" class="export-btn">データ書き出し (保存)</button>
-                            <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み (復元)</button>
-                            <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".rep">
-                            <button onclick="showSyncLog()" class="log-btn">操作ログ</button>
-                        </div>
-                    </section>
-                </div>
-            </div>
-
-            <!-- ========== 教材 タブ ========== -->
-            <div id="tab-materials" class="tab-content">
+            <!-- Tab 1: 教材 (旧 Materials Tab) -->
+            <div id="tab-materials" class="tab-content active">
                 <div class="materials-container">
                     <div class="materials-header">
-                        <h2>📚 教材管理</h2>
+                        <h2>📚 教材一覧</h2>
                         <button class="add-material-btn" onclick="openMaterialModal()">＋ 教材を追加</button>
                     </div>
                     <div id="materials-list" class="materials-list">
@@ -142,90 +76,87 @@
                 </div>
             </div>
 
-            <!-- ========== 分析 タブ ========== -->
-            <div id="tab-stats" class="tab-content">
-                <div class="stats-container">
-                    <h2>📊 学習分析</h2>
-                    
-                    <!-- 統計カード -->
-                    <section class="stats-detail">
-                        <div class="stats-detail-card">
-                            <h4>今日の学習時間</h4>
-                            <p id="stats-today-detail" class="stats-big-number">0分</p>
-                        </div>
-                        <div class="stats-detail-card">
-                            <h4>今月の学習時間</h4>
-                            <p id="stats-month-detail" class="stats-big-number">0分</p>
-                        </div>
-                        <div class="stats-detail-card">
-                            <h4>総学習時間</h4>
-                            <p id="stats-total-detail" class="stats-big-number">0分</p>
-                        </div>
-                    </section>
+            <!-- Tab 2: タイムライン (新設) -->
+            <div id="tab-timeline" class="tab-content">
+                <div class="timeline-container">
+                    <h2>🕒 タイムライン</h2>
+                    <div id="timeline-list" class="timeline-list">
+                        <!-- JSで動的生成 -->
+                    </div>
+                </div>
+            </div>
 
-                    <!-- 週間グラフ -->
-                    <section class="weekly-chart-section">
-                        <h3>週間の学習推移</h3>
-                        <div id="weekly-chart" class="weekly-chart">
-                            <!-- グラフはJSで描画 -->
+            <!-- Tab 3: 日報 (旧 Home Tab) -->
+            <div id="tab-report" class="tab-content">
+                <div class="home-container">
+                    <!-- 日報作成機能 -->
+                    <section class="daily-report-section">
+                        <div class="report-header">
+                            <h3>📧 日報作成</h3>
+                            <button class="auto-generate-btn" onclick="generateReportFromRecords()">🔄 今日の記録から自動生成</button>
                         </div>
-                        <div id="chart-legend" class="chart-legend">
-                            <!-- 凡例はJSで描画 -->
+                        
+                        <div class="date-section">
+                            <input type="date" id="report-date">
+                        </div>
+
+                        <!-- 既存の教科入力リスト（手動修正用） -->
+                        <div id="subjects-container"></div>
+                        
+                        <div class="controls">
+                            <button class="add-btn" onclick="addSubject()">＋ 教科を追加</button>
+                            <button class="reset-btn" onclick="resetData()">リセット</button>
+                        </div>
+
+                        <!-- 全体の感想 -->
+                        <div class="global-comment-section">
+                            <label>全体の感想・コメント</label>
+                            <textarea id="global-comment-text" placeholder="今日の総括や明日への意気込みなど" oninput="generateText()"></textarea>
+                        </div>
+
+                        <!-- 結果表示 -->
+                        <div class="result-area">
+                            <div class="total-display" id="screen-total">合計: 0時間 0分</div>
+                            <button class="copy-btn" onclick="copyToClipboard()">コピーする</button>
+                            <textarea id="output-text" readonly></textarea>
+                        </div>
+                        
+                        <!-- バックアップ操作 -->
+                        <div class="backup-controls">
+                            <button class="export-btn" onclick="exportData()">バックアップ書き出し</button>
+                            <button class="import-btn" onclick="document.getElementById('import-file').click()">読み込み</button>
+                            <input type="file" id="import-file" style="display: none;" onchange="importData(this)" accept=".json,.rep">
+                            <button class="log-btn" onclick="showSyncLog()">同期ログ</button>
                         </div>
                     </section>
                 </div>
             </div>
 
-            <!-- ========== 設定 タブ ========== -->
-            <div id="tab-settings" class="tab-content">
-                <div class="settings-container">
-                    <h2>⚙ 設定</h2>
-                    
-                    <!-- アカウント情報 -->
-                    <section class="settings-section">
-                        <h3>アカウント</h3>
-                        <div class="account-info">
-                            <img id="settings-user-icon" src="" alt="" class="settings-user-icon">
-                            <div class="account-details">
-                                <p id="settings-user-email" class="user-email"></p>
-                            </div>
+            <!-- Tab 4: 分析 (旧 Stats Tab) -->
+            <div id="tab-stats" class="tab-content">
+                <div class="stats-container">
+                    <h2>📊 学習分析</h2>
+                    <!-- Stats Detail Cards -->
+                    <section class="stats-detail">
+                        <div class="stats-detail-card">
+                            <h4>今日の学習</h4>
+                            <p id="stats-today-detail" class="stats-big-number">0分</p>
                         </div>
-                        <button class="logout-btn" onclick="logout()">ログアウト</button>
-                    </section>
-
-                    <!-- 時間単位設定 -->
-                    <section class="settings-section">
-                        <h3>時間単位</h3>
-                        <div class="setting-item">
-                            <label class="radio-label">
-                                <input type="radio" name="time-unit" value="1min" checked>
-                                1分単位（デフォルト）
-                            </label>
-                            <label class="radio-label">
-                                <input type="radio" name="time-unit" value="5min">
-                                5分単位（切り上げ）
-                            </label>
+                        <div class="stats-detail-card">
+                            <h4>今月の学習</h4>
+                            <p id="stats-month-detail" class="stats-big-number">0時間</p>
+                        </div>
+                        <div class="stats-detail-card">
+                            <h4>総学習時間</h4>
+                            <p id="stats-total-detail" class="stats-big-number">0時間</p>
                         </div>
                     </section>
-
-                    <!-- 特殊コード設定 -->
-                    <section class="settings-section">
-                        <h3>特殊コード</h3>
-                        <div class="special-code-group">
-                            <div style="margin-bottom: 12px; display: flex; align-items: center;">
-                                <input type="checkbox" id="special-code-toggle" style="margin-right: 8px; transform: scale(1.2); cursor: pointer;">
-                                <label for="special-code-toggle" style="font-weight: bold; cursor: pointer;">特殊コード機能を有効にする</label>
-                            </div>
-                            <textarea id="special-code-input" class="special-code-textarea" placeholder="ここにHTMLコードを入力してください..."></textarea>
-                            <p style="font-size: 0.85em; color: #666; margin-top: 5px;">※コピー後にこのHTMLを含む新しいタブが開きます</p>
-                        </div>
+                    <!-- Weekly Chart -->
+                    <section class="weekly-chart-section">
+                        <h3>週間の学習推移</h3>
+                        <div id="weekly-chart" class="weekly-chart"></div>
+                        <div id="chart-legend" class="chart-legend"></div>
                     </section>
-
-                    <!-- 保存ボタン -->
-                    <button class="save-settings-btn" onclick="saveAllSettings()">設定を保存</button>
-
-                    <!-- アプリバージョン -->
-                    <p id="app-version-display" class="app-version"></p>
                 </div>
             </div>
 
@@ -233,21 +164,21 @@
 
         <!-- フッターナビゲーション -->
         <nav class="bottom-nav">
-            <button class="nav-btn active" data-tab="home" onclick="switchTab('home')">
-                <span class="nav-icon">🏠</span>
-                <span class="nav-label">ホーム</span>
-            </button>
-            <button class="nav-btn" data-tab="materials" onclick="switchTab('materials')">
+            <button class="nav-btn active" data-tab="materials" onclick="switchTab('materials')">
                 <span class="nav-icon">📚</span>
                 <span class="nav-label">教材</span>
+            </button>
+            <button class="nav-btn" data-tab="timeline" onclick="switchTab('timeline')">
+                <span class="nav-icon">�</span>
+                <span class="nav-label">タイムライン</span>
+            </button>
+            <button class="nav-btn" data-tab="report" onclick="switchTab('report')">
+                <span class="nav-icon">�</span>
+                <span class="nav-label">日報</span>
             </button>
             <button class="nav-btn" data-tab="stats" onclick="switchTab('stats')">
                 <span class="nav-icon">📊</span>
                 <span class="nav-label">分析</span>
-            </button>
-            <button class="nav-btn" data-tab="settings" onclick="switchTab('settings')">
-                <span class="nav-icon">⚙</span>
-                <span class="nav-label">設定</span>
             </button>
         </nav>
     </div>
@@ -446,7 +377,7 @@
     <script src="./js/firebase-init.js?v=custom"></script>
 
     <!-- App Logic -->
-    <script src="./js/script.js?v=2.0.0.bata" async></script>
+    <script src="./js/script.js?v=2.0.0.bata2" async></script>
 </body>
 
 </html>

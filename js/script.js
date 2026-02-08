@@ -205,6 +205,9 @@ window.onload = () => {
       
       // データ読み込み
       loadAllData();
+
+      // 初期タブを表示（教材タブ）
+      switchTab('materials');
     } else {
       // 未ログイン：認証ガードを表示
       document.getElementById('auth-guard-screen').style.display = 'flex';
@@ -296,8 +299,16 @@ function switchTab(tabName) {
     renderWeeklyChart();
   } else if (tabName === 'materials') {
     renderMaterialsList();
-  } else if (tabName === 'settings') {
-    loadSettingsUI();
+  } else if (tabName === 'timeline') {
+    renderTimeline();
+  } else if (tabName === 'report') {
+    // 日報タブを開いた時、日付が未設定なら今日にする
+    if (!document.getElementById('report-date').value) {
+      const now = new Date();
+      document.getElementById('report-date').value = 
+        `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    }
+    loadData(); // 既存データをロード
   }
 }
 
@@ -776,18 +787,28 @@ function renderMaterialsList() {
   let html = '';
   materialsCache.forEach(m => {
     const color = categoryColors[m.category] || categoryColors.other;
+    // 編集ボタンは右上に配置（stopPropgationでカードクリックイベントを無効化）
     html += `
-      <div class="material-card" onclick="editMaterial('${m.id}')">
-        <div class="material-image placeholder" style="background: ${color};">📖</div>
+      <div class="material-card" onclick="openRecordModalForMaterial('${m.id}')">
+        <div class="material-image placeholder" style="background: ${color};">
+            ${m.imageData ? `<img src="${m.imageData}" style="width:100%;height:100%;object-fit:cover;">` : '📖'}
+        </div>
         <div class="material-info">
           <div class="material-title">${m.title}</div>
           <div class="material-meta">${m.unitType}</div>
         </div>
+        <button class="material-edit-btn" onclick="event.stopPropagation(); editMaterial('${m.id}')" style="position:absolute;top:5px;right:5px;background:rgba(255,255,255,0.8);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;">✏️</button>
       </div>
     `;
   });
   
   container.innerHTML = html;
+}
+
+function openRecordModalForMaterial(materialId) {
+  openRecordModal();
+  const select = document.getElementById('record-material');
+  if (select) select.value = materialId;
 }
 
 function openMaterialModal() {
@@ -1041,6 +1062,21 @@ async function renderWeeklyChart() {
 // 設定機能
 // ======================================== 
 
+function openSettingsModal() {
+  loadSettings();
+  loadSettingsUI();
+  document.getElementById('settings-modal').classList.add('show');
+}
+
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.remove('show');
+}
+
+async function saveAllSettingsAndClose() {
+  await saveAllSettings();
+  closeSettingsModal();
+}
+
 async function loadSettings() {
   if (!currentUser) return;
   
@@ -1065,16 +1101,20 @@ function loadSettingsUI() {
   });
   
   // 特殊コード
-  document.getElementById('special-code-toggle').checked = settingsCache.specialCodeEnabled;
-  document.getElementById('special-code-input').value = settingsCache.specialCode;
+  if (document.getElementById('special-code-toggle')) {
+    document.getElementById('special-code-toggle').checked = settingsCache.specialCodeEnabled;
+  }
+  if (document.getElementById('special-code-input')) {
+    document.getElementById('special-code-input').value = settingsCache.specialCode;
+  }
 }
 
 async function saveAllSettings() {
   if (!currentUser) return;
   
   const timeUnit = document.querySelector('input[name="time-unit"]:checked').value;
-  const specialCodeEnabled = document.getElementById('special-code-toggle').checked;
-  const specialCode = document.getElementById('special-code-input').value;
+  const specialCodeEnabled = document.getElementById('special-code-toggle') ? document.getElementById('special-code-toggle').checked : false;
+  const specialCode = document.getElementById('special-code-input') ? document.getElementById('special-code-input').value : '';
   
   try {
     await db.collection('users').doc(currentUser.uid).set({
@@ -1565,6 +1605,92 @@ function updateSaveStatus(status) {
     saveStatus.classList.add("error");
   } else {
     saveStatus.innerText = "";
+  }
+}
+
+// ======================================== 
+// 日報自動生成機能
+// ======================================== 
+
+async function generateReportFromRecords() {
+  if (!currentUser) {
+    showPopup('ログインが必要です');
+    return;
+  }
+  
+  const dateStr = document.getElementById('report-date').value;
+  if (!dateStr) return;
+  
+  const startOfDay = new Date(dateStr);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(dateStr);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  try {
+    updateSaveStatus("loading");
+    const snapshot = await db.collection('users').doc(currentUser.uid)
+      .collection('study_records')
+      .where('startAt', '>=', firebase.firestore.Timestamp.fromDate(startOfDay))
+      .where('startAt', '<=', firebase.firestore.Timestamp.fromDate(endOfDay))
+      .get();
+    
+    if (snapshot.empty) {
+      showPopup('この日の学習記録がありません');
+      updateSaveStatus("");
+      return;
+    }
+    
+    // 教材ごとに集計
+    const subjectsMap = {};
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const title = data.materialTitle || 'その他';
+      const duration = data.durationMinutes || 0;
+      const comment = data.comment || '';
+      
+      if (!subjectsMap[title]) {
+        subjectsMap[title] = { duration: 0, comments: [] };
+      }
+      subjectsMap[title].duration += duration;
+      if (comment) subjectsMap[title].comments.push(comment);
+    });
+    
+    // UI反映
+    // 既存の入力欄をクリア
+    const container = document.getElementById("subjects-container");
+    container.innerHTML = "";
+    
+    Object.keys(subjectsMap).forEach(title => {
+      const data = subjectsMap[title];
+      const hours = Math.floor(data.duration / 60);
+      const minutes = data.duration % 60;
+      const text = data.comments.join(' / ');
+      
+      // selectボックスのマッチングを行う
+      let selectValue = "その他";
+      let otherValue = title;
+      
+      if (subjectList.includes(title)) {
+        selectValue = title;
+        otherValue = "";
+      }
+      
+      addSubject({
+        select: selectValue,
+        other: otherValue,
+        text: text,
+        h: hours,
+        m: minutes
+      });
+    });
+    
+    showPopup('学習記録から日報を生成しました');
+    updateSaveStatus("saved");
+    
+  } catch (err) {
+    console.error("Failed to generate report", err);
+    showPopup('生成に失敗しました');
+    updateSaveStatus("error");
   }
 }
 
