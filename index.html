@@ -14,13 +14,13 @@
 
 <body>
     <div id="auth-guard-screen" class="auth-guard">
-        <div class="container" style="text-align: center; max-width: 400px; width: 90%; padding: 40px 20px;">
-            <h2 style="text-align: center; margin-bottom: 10px; color: #333;">StudyReport</h2>
-            <p style="margin-bottom: 30px; color: #666;">勉強報告メール作成</p>
+        <div class="container auth-box">
+            <h2 class="auth-title">StudyReport</h2>
+            <p class="auth-subtitle">勉強報告メール作成</p>
 
-            <h3 id="auth-modal-title" style="margin: 0 0 20px 0; font-size: 1.1em; color: #444;">ログイン</h3>
+            <h3 id="auth-modal-title" class="auth-section-title">ログイン</h3>
 
-            <button class="auth-btn-google" onclick="performGoogleLoginGuard()" style="cursor: pointer;">
+            <button class="auth-btn-google" onclick="performGoogleLoginGuard()">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
                 Googleでログイン
             </button>
@@ -28,20 +28,22 @@
             <div class="separator">または Emailで</div>
 
             <div class="form-group">
-                <input type="email" id="auth-email" placeholder="メールアドレス">
+                <input type="email" id="auth-email" placeholder="メールアドレス" class="auth-input">
             </div>
             <div class="form-group">
-                <input type="password" id="auth-password" placeholder="パスワード">
+                <input type="password" id="auth-password" placeholder="パスワード" class="auth-input">
             </div>
 
-            <button id="auth-action-btn" class="popup-btn" onclick="performEmailSignInGuard()">ログイン</button>
+            <button id="auth-action-btn" class="popup-btn auth-submit-btn" onclick="performEmailSignInGuard()">ログイン</button>
 
-            <p class="switch-auth-link">
-                アカウントをお持ちでないですか？ <a onclick="toggleAuthMode('signup')">新規登録</a>
-            </p>
-            <p class="switch-auth-link">
-                <a onclick="resetPasswordGuard()">パスワードを忘れた場合</a>
-            </p>
+            <div class="auth-links">
+                <p class="switch-auth-link">
+                    アカウントをお持ちでないですか？ <a onclick="toggleAuthMode('signup')">新規登録</a>
+                </p>
+                <p class="switch-auth-link">
+                    <a onclick="resetPasswordGuard()">パスワードを忘れた場合</a>
+                </p>
+            </div>
         </div>
     </div>
 
@@ -188,7 +190,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script src="./js/firebase-init.js?v=custom"></script>
-
     <script src="./js/script.js?v=1.6.2"></script>
 </body>
 

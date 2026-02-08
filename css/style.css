@@ -117,9 +117,6 @@ label {
     font-size: 0.9em;
 }
 
-
-/* ★修正: input[type="date"]も含めますが、#report-dateで後述の上書きを行います */
-
 select,
 input[type="text"],
 input[type="email"],
@@ -314,9 +311,6 @@ textarea {
     border: 1px solid #bbdefb;
 }
 
-
-/* ★修正: width: auto を追加し、グローバルの100%を上書きしてバグを修正 */
-
 #report-date {
     font-size: 1.2em;
     padding: 5px 10px;
@@ -388,7 +382,6 @@ textarea {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
-    /* ★修正: AuthGuard(9999)より高く設定 */
     z-index: 10000;
     justify-content: center;
     align-items: center;
@@ -398,9 +391,6 @@ textarea {
 .popup-overlay.show {
     display: flex;
 }
-
-
-/* ★修正: さらに手前に設定 */
 
 #popup-modal,
 #confirm-modal {
@@ -437,6 +427,7 @@ textarea {
     transition: opacity 0.2s;
     min-width: 120px;
     flex: 1;
+    /* ★重要: これが横並び時の等幅設定。しかし縦並び時は伸長の原因になる */
     text-align: center;
 }
 
@@ -777,36 +768,6 @@ textarea {
     padding: 20px;
 }
 
-.display-method-section {
-    background-color: #fff;
-    border: 1px solid #e0e0e0;
-    border-radius: 6px;
-    padding: 15px;
-    margin-top: 10px;
-    text-align: center;
-}
-
-.radio-label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    background-color: #fff;
-    transition: all 0.2s;
-}
-
-.radio-label:hover {
-    background-color: #f0f8ff;
-    border-color: #2196f3;
-}
-
-.radio-label input {
-    margin-right: 8px;
-    accent-color: #2196f3;
-}
-
 
 /* ====== ログインモーダル ====== */
 
@@ -927,7 +888,7 @@ textarea {
 /* ======================================== */
 
 
-/* Auth Guard Styles (ログイン必須画面用) */
+/* Auth Guard Styles (ログイン必須画面用)   */
 
 
 /* ======================================== */
@@ -939,18 +900,41 @@ textarea {
     right: 0;
     bottom: 0;
     background-color: #f4f7f6;
-    /* bodyと同じ色 */
     display: flex;
     justify-content: center;
     align-items: center;
-    /* ★重要: モーダル(10000)より低く */
     z-index: 9999;
 }
 
-.auth-guard .container {
-    width: 90%;
-    max-width: 400px;
+
+/* PC/タブレット用スタイル */
+
+.auth-guard .auth-box {
     text-align: center;
+    max-width: 400px;
+    width: 90%;
+    padding: 40px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.auth-title {
+    text-align: center;
+    margin-bottom: 10px;
+    color: #333;
+    font-size: 1.8em;
+}
+
+.auth-subtitle {
+    margin-bottom: 30px;
+    color: #666;
+    font-size: 1em;
+}
+
+.auth-section-title {
+    margin: 0 0 20px 0;
+    font-size: 1.1em;
+    color: #444;
 }
 
 .auth-btn-google {
@@ -969,6 +953,7 @@ textarea {
     border-radius: 6px;
     cursor: pointer;
     transition: background-color 0.2s;
+    user-select: none;
 }
 
 .auth-btn-google:hover {
@@ -1004,6 +989,19 @@ textarea {
     margin-left: 10px;
 }
 
+.auth-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.auth-submit-btn {
+    width: 100%;
+    margin-top: 10px;
+}
+
 .switch-auth-link {
     text-align: center;
     margin-top: 15px;
@@ -1015,4 +1013,65 @@ textarea {
     color: #2196f3;
     text-decoration: none;
     cursor: pointer;
+}
+
+
+/* Auth Guard用 スマホ対応メディアクエリ */
+
+
+/* 背景を統一し、全画面アプリのような表示にする */
+
+@media (max-width: 480px) {
+    /* 背景色を白にしてボックスと統一し、垂直中央揃え */
+    .auth-guard {
+        background-color: #fff;
+        align-items: center;
+        /* 中央配置 */
+    }
+    /* ログインボックスのカード感を消して全画面化 */
+    .auth-guard .auth-box {
+        width: 100%;
+        height: 100%;
+        /* 全画面に広げる */
+        max-width: none;
+        border-radius: 0;
+        /* 角丸をなくす */
+        box-shadow: none;
+        /* 影をなくす */
+        margin: 0;
+        padding: 20px 30px;
+        background-color: transparent;
+        /* 背景透過で親の白と一体化 */
+        /* 中身を画面中央に配置 */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .auth-title {
+        font-size: 1.8em;
+        margin-top: 0;
+        margin-bottom: 5px;
+    }
+    /* ★修正箇所: ボタンが縦に伸びるのを防ぐ (flex: 1 の打ち消し) */
+    .auth-guard .popup-btn {
+        flex: none;
+        /* flex: 1 を無効化 */
+        width: 100%;
+        box-sizing: border-box;
+    }
+    /* ログインボタン固有のサイズ調整 */
+    .popup-btn.auth-submit-btn {
+        margin-top: 10px;
+        padding: 12px 0;
+        /* 高さを程よく抑制 */
+        font-size: 14px;
+    }
+    .auth-btn-google {
+        font-size: 14px;
+        padding: 10px 0;
+        margin-bottom: 15px;
+    }
+    .separator {
+        margin: 15px 0;
+    }
 }
