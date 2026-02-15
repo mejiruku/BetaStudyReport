@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="Beta 1.6.3">
-    <link rel="stylesheet" href="./css/style.css?v=1.6.3">
+    <meta name="data-app-version" content="2.0.0 Beta1">
+    <link rel="stylesheet" href="./css/style.css?v=2.0.0 Beta1">
     <link rel="manifest" href="./manifest.json?v=1.1.1">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -43,6 +43,9 @@
                 <p class="switch-auth-link">
                     <a onclick="resetPasswordGuard()">パスワードを忘れた場合</a>
                 </p>
+                <p class="switch-auth-link">
+                    <a id="test-skip-link">テスト用 ログインスキップ</a>
+                </p>
             </div>
         </div>
     </div>
@@ -50,16 +53,21 @@
     <div id="app-container" class="container" style="display: none;">
         <div class="header-container">
             <div class="header-title-box">
-                <h2>勉強報告メール</h2>
+                <h2>StudyReport</h2>
                 <span id="save-status" class="save-status"></span>
             </div>
             <div id="auth-container" class="auth-container">
+                <button id="add-material-btn" onclick="openMaterialModal()" class="settings-btn" title="教材を追加">＋</button>
                 <button id="settings-btn" onclick="openSettings()" class="settings-btn" title="設定">⚙️</button>
                 <img id="user-icon" src="" alt="" style="width: 28px; height: 28px; border-radius: 50%; display: none; object-fit: cover;">
                 <span id="user-display" style="font-size: 0.9em; display: none;"></span>
                 <button id="login-btn" onclick="login()" class="auth-btn login" style="display: none;">ログイン</button>
                 <button id="logout-btn" onclick="logout()" class="auth-btn logout" style="display: none;">ログアウト</button>
             </div>
+        </div>
+
+        <div id="materials-section" class="materials-section">
+            <!-- カテゴリー別の教材表示エリア -->
         </div>
 
         <div class="date-section">
@@ -82,12 +90,6 @@
             <div class="total-display" id="screen-total">合計: 0時間 0分</div>
             <button class="copy-btn" onclick="copyToClipboard()">コピーする</button>
             <textarea id="output-text" readonly></textarea>
-        </div>
-        <div class="backup-controls">
-            <button onclick="exportData()" class="export-btn">データ書き出し (保存)</button>
-            <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み (復元)</button>
-            <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".rep">
-            <button onclick="showSyncLog()" class="log-btn">操作ログ</button>
         </div>
     </div>
 
@@ -135,13 +137,23 @@
             <h3 style="margin-top: 0; color: #006680;">⚙ 設定</h3>
             <div class="settings-section">
                 <div class="special-code-group">
+                    <h4 style="margin: 0 0 10px 0; color: #006680; font-size: 1em;">特殊コード</h4>
                     <div style="margin-bottom: 12px; display: flex; align-items: center;">
                         <input type="checkbox" id="special-code-toggle" style="margin-right: 8px; transform: scale(1.2); cursor: pointer;">
                         <label for="special-code-toggle" style="font-weight: bold; cursor: pointer;">特殊コード機能を有効にする</label>
                     </div>
                     <label for="special-code-input" style="font-weight: bold; display: block; margin-bottom: 8px;">特殊コード (HTML)</label>
                     <textarea id="special-code-input" class="special-code-textarea" placeholder="ここにHTMLコードを入力してください..."></textarea>
-                    <p style="font-size: 0.85em; color: #666; margin-top: 5px; margin-bottom: 0;">※コピー後にこのHTMLを含む新しいタブが開きます</p>
+                </div>
+
+                <div class="settings-section" style="margin-top: 20px;">
+                    <h4 style="margin: 0 0 10px 0; color: #006680; font-size: 1em;">データ管理</h4>
+                    <div class="backup-controls-vertical">
+                        <button onclick="exportData()" class="export-btn">データ書き出し (保存)</button>
+                        <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み (復元)</button>
+                        <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".rep">
+                        <button onclick="showSyncLog()" class="log-btn">操作ログ</button>
+                    </div>
                 </div>
                 <p id="app-version-display" style="text-align: center; font-size: 0.8em; color: #999; margin-top: 15px; margin-bottom: 5px;"></p>
             </div>
@@ -184,13 +196,64 @@
         </div>
     </div>
 
+    <!-- 教材追加モーダル (全画面表示) -->
+    <div id="material-modal" class="fullscreen-modal-overlay">
+        <div class="fullscreen-modal-content">
+            <div class="fullscreen-modal-header">
+                <button class="header-close-btn" onclick="closeMaterialModal()" title="キャンセル">✕</button>
+                <h3 class="modal-title">教材を追加</h3>
+                <button class="header-save-btn" onclick="saveMaterial()">保存</button>
+            </div>
+            <div class="fullscreen-modal-body">
+                <div class="form-group">
+                    <label for="material-name">教材の名前 <span class="required">※</span></label>
+                    <input type="text" id="material-name" placeholder="例：Focus Gold 数学II+B">
+                </div>
+
+                <div class="form-group">
+                    <label>教材の写真・画像</label>
+                    <div class="image-upload-wrapper">
+                        <div id="material-image-preview" class="image-preview">
+                            <img src="img/default_book_img.png" alt="デフォルト教材画像" id="preview-img">
+                        </div>
+                        <input type="file" id="material-image-input" accept="image/*" style="display: none;" onchange="previewMaterialImage(this)">
+                        <button class="upload-btn" onclick="document.getElementById('material-image-input').click()">画像を選択 / 撮影</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="material-category">カテゴリー</label>
+                    <select id="material-category">
+                        <option value="英語">英語</option>
+                        <option value="数学">数学</option>
+                        <option value="国語">国語</option>
+                        <option value="理科">理科</option>
+                        <option value="社会">社会</option>
+                        <option value="読書">読書</option>
+                        <option value="資格試験">資格試験</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="material-unit">単位（計測方法）</label>
+                    <select id="material-unit">
+                        <option value="ページ">ページ</option>
+                        <option value="回">回</option>
+                        <option value="章・節">章・節</option>
+                        <option value="分">分（時間）</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <script src="./js/firebase-init.js?v=custom"></script>
-    <script src="./js/script.js?v=1.6.3"></script>
+    <script src="./js/script.js?v=2.0.0 Beta1"></script>
 </body>
-
 
 </html>

@@ -388,6 +388,10 @@ textarea {
   z-index: 10001;
 }
 
+#sync-log-modal {
+  z-index: 10005; /* Settings(10000)より高く設定 */
+}
+
 .popup-content {
   background: white;
   padding: 25px 30px;
@@ -682,6 +686,26 @@ textarea {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 20px;
+}
+
+/* ====== データ管理ボタン (設定画面内) ====== */
+
+.backup-controls-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.backup-controls-vertical .export-btn,
+.backup-controls-vertical .import-btn,
+.backup-controls-vertical .log-btn {
+  width: 100%;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 /* ====== ログインモーダル ====== */
@@ -984,5 +1008,188 @@ textarea {
   }
   .separator {
     margin: 15px 0;
+  }
+}
+
+/* ====== 教材表示エリア ====== */
+.materials-section {
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+.category-group {
+  margin-bottom: 15px;
+}
+
+.category-title {
+  font-size: 0.9em;
+  color: #006680;
+  border-bottom: 2px solid #bce0eb;
+  padding-bottom: 4px;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 120px));
+  gap: 15px;
+}
+
+.material-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.material-card:active {
+  transform: scale(0.95);
+}
+
+.material-thumb {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  background-color: #eee;
+  margin-bottom: 6px;
+}
+
+.material-name {
+  font-size: 0.8em;
+  font-weight: bold;
+  color: #333;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.3;
+}
+
+/* ====== 全画面モーダル ====== */
+.fullscreen-modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #fff;
+  z-index: 20000;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+}
+
+.fullscreen-modal-overlay.show {
+  display: flex;
+}
+
+.fullscreen-modal-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.fullscreen-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+}
+
+.header-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 5px;
+  line-height: 1;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.1em;
+  color: #333;
+}
+
+.header-save-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.fullscreen-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.required {
+  color: #f44336;
+  font-size: 0.8em;
+  margin-left: 4px;
+}
+
+/* 画像アップロード関連 */
+.image-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+}
+
+.image-preview {
+  width: 120px;
+  aspect-ratio: 3 / 4;
+  background: #eee;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-btn {
+  background-color: #008cba;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
   }
 }

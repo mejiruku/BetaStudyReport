@@ -211,6 +211,32 @@ window.onload = () => {
     autoResize(globalCommentInput);
   }
 
+  // --- テスト用ログインスキップ (5秒長押し) ---
+  const skipLink = document.getElementById("test-skip-link");
+  if (skipLink) {
+    let skipTimer = null;
+    const startTimer = (e) => {
+      e.preventDefault();
+      skipLink.style.opacity = "0.5";
+      skipTimer = setTimeout(() => {
+        skipAuthGuard();
+      }, 5000);
+    };
+    const cancelTimer = () => {
+      if (skipTimer) {
+        clearTimeout(skipTimer);
+        skipTimer = null;
+      }
+      skipLink.style.opacity = "1";
+    };
+
+    skipLink.addEventListener("mousedown", startTimer);
+    skipLink.addEventListener("touchstart", startTimer);
+    skipLink.addEventListener("mouseup", cancelTimer);
+    skipLink.addEventListener("mouseleave", cancelTimer);
+    skipLink.addEventListener("touchend", cancelTimer);
+  }
+
   // Auth State Listener (Auth Guard Logic Implemented Here)
   auth.onAuthStateChanged((user) => {
     currentUser = user;
@@ -227,6 +253,7 @@ window.onload = () => {
 
       syncDataOnLogin();
       loadSettings();
+      renderMaterials();
     } else {
       // Guest Mode: Show Guard, Hide App
       if (authGuard) authGuard.style.display = "flex";
@@ -451,6 +478,20 @@ async function resetPasswordGuard() {
   }
 }
 
+function skipAuthGuard() {
+  const authGuard = document.getElementById("auth-guard-screen");
+  const appContainer = document.getElementById("app-container");
+  if (authGuard) authGuard.style.display = "none";
+  if (appContainer) appContainer.style.display = "block";
+
+  // ゲストモードとしての初期化
+  syncDataOnLogin();
+  loadSettings();
+  renderMaterials();
+  
+  console.log("Auth guard skipped (Test Mode)");
+}
+
 async function logout() {
   const confirmed = await showConfirm("ログアウトしますか？");
   if (confirmed) {
@@ -473,6 +514,14 @@ dateInput.addEventListener("change", () => {
 function addSubject(initialData = null) {
   const div = document.createElement("div");
   div.className = "subject-row";
+  
+  // 単位に応じたHTML生成
+  let amountHTML = "";
+  let currentUnit = initialData?.unit || "";
+  if (currentUnit && currentUnit !== "時間" && currentUnit !== "分") {
+    amountHTML = `<div class="form-group amount-group"><label>進捗 (${currentUnit})</label><input type="number" class="subject-amount" placeholder="数量を入力" oninput="generateText()"></div>`;
+  }
+
   div.innerHTML = `
     <div class="row-controls">
         <div class="move-btns">
@@ -482,7 +531,7 @@ function addSubject(initialData = null) {
         <button class="remove-btn" onclick="removeRow(this)">削除</button>
     </div>
     <div class="form-group">
-        <label>教科</label>
+        <label>教科 / 教材</label>
         <select class="subject-select" onchange="toggleOtherInput(this)">
             ${subjectList
               .map((s) => {
@@ -492,7 +541,9 @@ function addSubject(initialData = null) {
               .join("")}
         </select>
         <input type="text" class="other-subject-input" style="display:none;" placeholder="教科名を入力" oninput="generateText()">
+        <input type="hidden" class="material-unit-hidden" value="${currentUnit}">
     </div>
+    ${amountHTML}
     <div class="form-group"><label>内容</label><textarea class="subject-text" placeholder="今日やったこと"></textarea></div>
     <div class="form-group"><label>勉強時間</label><div class="time-inputs"><select class="time-h" onchange="generateText()">${hoursOptions}</select> 時間 <select class="time-m" onchange="generateText()">${minutesOptions}</select> 分</div></div>`;
 
@@ -511,11 +562,17 @@ function addSubject(initialData = null) {
   if (initialData) {
     div.querySelector(".subject-select").value = initialData.select;
     const otherInput = div.querySelector(".other-subject-input");
-    otherInput.value = initialData.other;
-    if (initialData.select === "その他") otherInput.style.display = "block";
-    div.querySelector(".subject-text").value = initialData.text;
-    div.querySelector(".time-h").value = initialData.h;
-    div.querySelector(".time-m").value = initialData.m;
+    otherInput.value = initialData.other || "";
+    if (initialData.select === "その他" || (initialData.other && !subjectList.includes(initialData.select))) {
+      div.querySelector(".subject-select").value = "その他";
+      otherInput.style.display = "block";
+    }
+    div.querySelector(".subject-text").value = initialData.text || "";
+    div.querySelector(".time-h").value = initialData.h || 0;
+    div.querySelector(".time-m").value = initialData.m || 0;
+    if (div.querySelector(".subject-amount")) {
+      div.querySelector(".subject-amount").value = initialData.amount || "";
+    }
   }
   if (!isLoading) generateText();
 }
@@ -557,6 +614,8 @@ function moveSubjectDown(btn) {
 
 
 function generateText() {
+  if (!container || !outputText || !screenTotal || !globalCommentInput || !dateInput) return;
+
   const rows = document.querySelectorAll(".subject-row");
   let totalMinutes = 0,
     bodyContent = "",
@@ -565,17 +624,31 @@ function generateText() {
   let validSubjectCount = 0;
 
   rows.forEach((row) => {
-    const selectValue = row.querySelector(".subject-select").value;
-    const otherValue = row.querySelector(".other-subject-input").value;
-    const text = row.querySelector(".subject-text").value;
-    const h = parseInt(row.querySelector(".time-h").value) || 0;
-    const m = parseInt(row.querySelector(".time-m").value) || 0;
+    const selectEl = row.querySelector(".subject-select");
+    const otherEl = row.querySelector(".other-subject-input");
+    const textEl = row.querySelector(".subject-text");
+    const hEl = row.querySelector(".time-h");
+    const mEl = row.querySelector(".time-m");
+
+    if (!selectEl || !otherEl || !textEl || !hEl || !mEl) return;
+
+    const selectValue = selectEl.value;
+    const otherValue = otherEl.value;
+    const text = textEl.value;
+    const h = parseInt(hEl.value) || 0;
+    const m = parseInt(mEl.value) || 0;
+    const amountEl = row.querySelector(".subject-amount");
+    const amount = amountEl ? amountEl.value : "";
+    const unit = row.querySelector(".material-unit-hidden").value;
+
     saveDataArray.push({
       select: selectValue,
       other: otherValue,
       text: text,
       h: h,
       m: m,
+      amount: amount,
+      unit: unit
     });
     if (selectValue === "") return;
     validSubjectCount++;
@@ -586,12 +659,15 @@ function generateText() {
     else if (scienceSubjects.includes(selectValue)) displayGroups.add("理科");
     else if (englishSubjects.includes(selectValue)) displayGroups.add("英語");
     else displayGroups.add(subjectDisplayName);
+    
     let timeStr = "";
     if (h > 0 && m > 0) timeStr = `${h}時間${m}分`;
     else if (h > 0 && m === 0) timeStr = `${h}時間`;
     else if (h === 0 && m > 0) timeStr = `${m}分`;
     else timeStr = `0分`;
-    bodyContent += `\n${subjectDisplayName}\n${text}\n勉強時間 ${timeStr}\n`;
+
+    let amountStr = amount ? `${amount}${unit} ` : "";
+    bodyContent += `\n${subjectDisplayName}\n${text}\n${amountStr}勉強時間 ${timeStr}\n`;
   });
 
   const totalH = Math.floor(totalMinutes / 60);
@@ -745,6 +821,7 @@ function saveToLocalStorageWithLog(dateKey, subjects, comment, changeDetail) {
 }
 
 function loadData() {
+  if (!dateInput) return;
   const dateKey = dateInput.value;
   if (!dateKey) return;
   isLoading = true;
@@ -1428,3 +1505,156 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEnterKey("login-email", "email-signin-btn");
   setupEnterKey("login-password", "email-signin-btn");
 });
+
+// ====== 教材管理ロジック ======
+
+function openMaterialModal() {
+  const modal = document.getElementById("material-modal");
+  document.getElementById("material-name").value = "";
+  document.getElementById("material-category").value = "英語";
+  document.getElementById("material-unit").value = "ページ";
+  document.getElementById("material-image-input").value = "";
+  document.getElementById("preview-img").src = "img/default_book_img.png";
+  modal.classList.add("show");
+}
+
+function closeMaterialModal() {
+  document.getElementById("material-modal").classList.remove("show");
+}
+
+function previewMaterialImage(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById("preview-img").src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function saveMaterial() {
+  const name = document.getElementById("material-name").value.trim();
+  const category = document.getElementById("material-category").value;
+  const unit = document.getElementById("material-unit").value;
+  const previewImg = document.getElementById("preview-img").src;
+  
+  if (!name) {
+    showPopup("教材の名前を入力してください");
+    return;
+  }
+  
+  const materialData = {
+    name: name,
+    category: category,
+    unit: unit,
+    image: previewImg,
+    createdAt: Date.now()
+  };
+  
+  updateSaveStatus("saving");
+  try {
+    if (currentUser) {
+      await db.collection("users").doc(currentUser.uid).collection("materials").add({
+        ...materialData,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      const materials = getLocalMaterials();
+      materials.push(materialData);
+      localStorage.setItem("studyReportMaterials", JSON.stringify(materials));
+    }
+    showPopup("教材を保存しました");
+    closeMaterialModal();
+    renderMaterials();
+    updateSaveStatus("saved");
+    addSyncLog("edit", "", `教材「${name}」を追加`);
+  } catch (err) {
+    console.error(err);
+    showPopup("保存に失敗しました");
+    updateSaveStatus("error");
+  }
+}
+
+function getLocalMaterials() {
+  const json = localStorage.getItem("studyReportMaterials");
+  return json ? JSON.parse(json) : [];
+}
+
+async function renderMaterials() {
+  const displayArea = document.getElementById("materials-section");
+  if (!displayArea) return;
+  displayArea.innerHTML = "";
+  
+  let materials = [];
+  try {
+    if (currentUser) {
+      const snapshot = await db.collection("users").doc(currentUser.uid).collection("materials").orderBy("createdAt", "desc").get();
+      materials = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } else {
+      materials = getLocalMaterials();
+    }
+  } catch (err) {
+    console.error("Error fetching materials:", err);
+    materials = getLocalMaterials();
+  }
+  
+  if (materials.length === 0) {
+    displayArea.innerHTML = '<p style="text-align: center; color: #999; font-size: 0.9em; margin-top: 10px;">教材を登録して、教科を簡単に追加しましょう。</p>';
+    return;
+  }
+  
+  const grouped = {};
+  materials.forEach(m => {
+    if (!grouped[m.category]) grouped[m.category] = [];
+    grouped[m.category].push(m);
+  });
+  
+  ["英語", "数学", "国語", "理科", "社会", "読書", "資格試験", "その他"].forEach(cat => {
+    if (grouped[cat] && grouped[cat].length > 0) {
+      const groupDiv = document.createElement("div");
+      groupDiv.className = "category-group";
+      groupDiv.innerHTML = `<div class="category-title">${cat}</div>`;
+      const grid = document.createElement("div");
+      grid.className = "materials-grid";
+      grouped[cat].forEach(m => {
+        const card = document.createElement("div");
+        card.className = "material-card";
+        card.innerHTML = `<img src="${m.image || 'img/default_book_img.png'}" class="material-thumb"><div class="material-name">${m.name}</div>`;
+        card.onclick = () => selectMaterial(m);
+        card.oncontextmenu = (e) => {
+          e.preventDefault();
+          deleteMaterial(m);
+        };
+        grid.appendChild(card);
+      });
+      groupDiv.appendChild(grid);
+      displayArea.appendChild(groupDiv);
+    }
+  });
+}
+
+function selectMaterial(m) {
+  addSubject({
+    select: "その他",
+    other: m.name,
+    unit: m.unit,
+    text: "",
+    h: 0,
+    m: 0,
+    amount: ""
+  });
+}
+
+async function deleteMaterial(m) {
+  const confirmed = await showConfirm(`教材「${m.name}」を削除しますか？`);
+  if (!confirmed) return;
+  
+  if (currentUser && m.id) {
+    await db.collection("users").doc(currentUser.uid).collection("materials").doc(m.id).delete();
+  } else {
+    const materials = getLocalMaterials();
+    const filtered = materials.filter(item => item.createdAt !== m.createdAt);
+    localStorage.setItem("studyReportMaterials", JSON.stringify(filtered));
+  }
+  renderMaterials();
+}

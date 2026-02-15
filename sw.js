@@ -1,4 +1,4 @@
-const CACHE_NAME = 'StudyReport-v2'; // バージョン管理
+const CACHE_NAME = 'StudyReport-v3'; // バージョン管理
 const urlsToCache = [
     './',              // index.html
     './index.html',
@@ -6,7 +6,8 @@ const urlsToCache = [
     './css/style.css',     // CSSファイル
     './js/script.js',     // JSファイル
     './js/firebase-init.js',
-    './assets/logo.png' // 画像
+    './assets/logo.png', // 画像
+    'https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg'
 ];
 
 // インストール時にキャッシュする
