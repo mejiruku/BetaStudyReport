@@ -1,17 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="2.0.0 Beta1">
-    <link rel="stylesheet" href="./css/style.css?v=2.0.0 Beta1">
+    <meta name="data-app-version" content="2.0.0 Beta3">
+    <link rel="stylesheet" href="./css/style.css?v=2.0.0 Beta3">
     <link rel="manifest" href="./manifest.json?v=1.1.1">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
 </head>
-
 <body>
     <div id="auth-guard-screen" class="auth-guard">
         <div class="container auth-box">
@@ -57,77 +55,140 @@
                 <span id="save-status" class="save-status"></span>
             </div>
             <div id="auth-container" class="auth-container">
-                <button id="add-material-btn" onclick="openMaterialModal()" class="settings-btn" title="教材を追加">＋</button>
                 <button id="settings-btn" onclick="openSettings()" class="settings-btn" title="設定">⚙️</button>
-                <img id="user-icon" src="" alt="" style="width: 28px; height: 28px; border-radius: 50%; display: none; object-fit: cover;">
-                <span id="user-display" style="font-size: 0.9em; display: none;"></span>
-                <button id="login-btn" onclick="login()" class="auth-btn login" style="display: none;">ログイン</button>
+                <img id="user-icon" src="" alt="" style="display: none;">
                 <button id="logout-btn" onclick="logout()" class="auth-btn logout" style="display: none;">ログアウト</button>
             </div>
         </div>
 
-        <div id="materials-section" class="materials-section">
-            <!-- カテゴリー別の教材表示エリア -->
+        <div class="tab-navigation">
+            <button class="tab-btn active" onclick="switchTab('timeline')">タイムライン</button>
+            <button class="tab-btn" onclick="switchTab('report')">日報作成</button>
         </div>
 
-        <div class="date-section">
-            <label for="report-date">日付: </label>
-            <input type="date" id="report-date">
+        <div id="tab-timeline" class="tab-content active">
+            <div id="active-session-card" class="active-session-card" style="display: none;">
+                <div class="session-header">
+                    <span class="recording-badge">● 計測中</span>
+                    <span id="session-material-name" class="session-material-name">教材名</span>
+                </div>
+                <div id="session-timer" class="session-timer">00:00:00</div>
+                <div class="session-controls">
+                    <button onclick="stopSession()" class="stop-btn">終了して記録</button>
+                    <button onclick="cancelSession()" class="cancel-btn">破棄</button>
+                </div>
+            </div>
+
+            <div class="section-header-row">
+                <h3 class="section-title">学習を記録</h3>
+                <button id="add-material-btn" onclick="openMaterialModal()" class="icon-add-btn" title="教材を追加">＋ 教材追加</button>
+            </div>
+            
+            <div id="materials-section" class="materials-section">
+                </div>
+
+            <h3 class="section-title" style="margin-top: 30px; border-bottom: none;">タイムライン</h3>
+            <div id="timeline-list" class="timeline-list">
+                </div>
         </div>
 
-        <div id="subjects-container"></div>
-        <div class="controls">
-            <button class="add-btn" onclick="addSubject()">＋ 教科を追加する</button>
-            <button class="reset-btn" onclick="resetData()">この日の入力をクリア</button>
-        </div>
+        <div id="tab-report" class="tab-content">
+            <div class="date-section">
+                <label for="report-date">日付: </label>
+                <input type="date" id="report-date">
+                <button onclick="loadReportDataForDate()" class="reload-btn" style="margin-left:10px;">更新</button>
+            </div>
 
-        <div class="global-comment-section">
-            <label style="font-size: 1.1em; color: #006680;">全体の感想・コメント</label>
-            <textarea id="global-comment-text" placeholder="コメント" oninput="generateText()"></textarea>
-        </div>
-        <div class="result-area">
-            <h3>メール本文</h3>
-            <div class="total-display" id="screen-total">合計: 0時間 0分</div>
-            <button class="copy-btn" onclick="copyToClipboard()">コピーする</button>
-            <textarea id="output-text" readonly></textarea>
-        </div>
-    </div>
+            <div class="report-preview-info">
+                <p>※タイムラインの記録から自動生成されます</p>
+            </div>
 
-    <div id="popup-modal" class="popup-overlay">
-        <div class="popup-content">
-            <p id="popup-message"></p>
-            <button id="popup-close-btn" class="popup-btn">OK</button>
-        </div>
-    </div>
+            <div id="subjects-container"></div>
+            
+            <div class="controls">
+                <button class="add-btn" onclick="addSubject()">＋ 手動で行を追加</button>
+                <button class="reset-btn" onclick="resetData()">この日の入力をクリア</button>
+            </div>
 
-    <div id="confirm-modal" class="popup-overlay">
-        <div class="popup-content">
-            <p id="confirm-message"></p>
-            <div class="confirm-buttons">
-                <button id="confirm-cancel-btn" class="popup-btn cancel">キャンセル</button>
-                <button id="confirm-ok-btn" class="popup-btn">OK</button>
+            <div class="global-comment-section">
+                <label style="font-size: 1.1em; color: #006680;">全体の感想・コメント</label>
+                <textarea id="global-comment-text" placeholder="コメント" oninput="generateText()"></textarea>
+            </div>
+            
+            <div class="result-area">
+                <h3>メール本文</h3>
+                <div class="total-display" id="screen-total">合計: 0時間 0分</div>
+                <button class="copy-btn" onclick="copyToClipboard()">コピーする</button>
+                <textarea id="output-text" readonly></textarea>
             </div>
         </div>
     </div>
 
-    <div id="sync-log-modal" class="popup-overlay">
-        <div class="popup-content log-modal-content">
-            <h3 style="margin-top: 0; color: #006680;">操作ログ</h3>
-            <div id="sync-log-list" class="sync-log-list"></div>
+    <div id="log-detail-modal" class="popup-overlay">
+        <div class="popup-content log-popup-content">
+            <h3 id="log-detail-title" style="margin-top:0; color:#006680; margin-bottom: 20px;">学習の記録</h3>
+            
+            <div class="form-group" id="manual-time-group">
+                <label>学習時間</label>
+                <div class="time-input-wrapper">
+                    <input type="tel" id="log-duration-input" placeholder="0" class="big-number-input">
+                    <span class="unit-label">分</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label style="margin-bottom: 8px;">進捗の記録</label>
+                <div class="toggle-switch-container">
+                    <input type="radio" id="progress-type-range" name="progress-type" value="range" checked onchange="toggleProgressInput()">
+                    <label for="progress-type-range" class="toggle-label">範囲 (〜)</label>
+                    <input type="radio" id="progress-type-amount" name="progress-type" value="amount" onchange="toggleProgressInput()">
+                    <label for="progress-type-amount" class="toggle-label">合計量</label>
+                </div>
+            </div>
+
+            <div id="progress-input-range" class="progress-input-group">
+                <div class="range-inputs">
+                    <input type="tel" id="log-range-start" placeholder="開始" class="range-field">
+                    <span class="range-sep">〜</span>
+                    <input type="tel" id="log-range-end" placeholder="終了" class="range-field">
+                </div>
+                <div class="unit-help" id="unit-help-range">単位: ページ</div>
+            </div>
+
+            <div id="progress-input-amount" class="progress-input-group" style="display:none;">
+                <div class="amount-inputs">
+                    <input type="tel" id="log-amount-val" placeholder="合計" class="amount-field">
+                    <span id="log-unit-display-amount" class="unit-display">ページ</span>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 15px;">
+                <label>コメント (任意)</label>
+                <textarea id="log-content-input" placeholder="感想やメモ" style="height:60px;"></textarea>
+            </div>
+
             <div class="confirm-buttons">
-                <button id="sync-log-clear-btn" onclick="clearSyncLog()" class="popup-btn cancel">ログを全削除</button>
-                <button id="sync-log-close-btn" onclick="closeSyncLogModal()" class="popup-btn">閉じる</button>
+                <button onclick="closeLogDetailModal()" class="popup-btn cancel">キャンセル</button>
+                <button id="log-save-btn" class="popup-btn">記録する</button>
             </div>
         </div>
     </div>
 
-    <div id="export-modal" class="popup-overlay">
-        <div class="popup-content">
-            <p>書き出しオプションを選択してください</p>
-            <div class="confirm-buttons" style="flex-direction: column; gap: 10px;">
-                <button id="export-with-logs-btn" class="popup-btn" style="width: 100%;">ログを含めて書き出し</button>
-                <button id="export-no-logs-btn" class="popup-btn" style="width: 100%; background-color: #4CAF50;">データのみ書き出し</button>
-                <button id="export-cancel-btn" class="popup-btn cancel" style="width: 100%;">キャンセル</button>
+    <div id="popup-modal" class="popup-overlay"><div class="popup-content"><p id="popup-message"></p><button id="popup-close-btn" class="popup-btn">OK</button></div></div>
+    <div id="confirm-modal" class="popup-overlay"><div class="popup-content"><p id="confirm-message"></p><div class="confirm-buttons"><button id="confirm-cancel-btn" class="popup-btn cancel">キャンセル</button><button id="confirm-ok-btn" class="popup-btn">OK</button></div></div></div>
+    
+    <div id="material-modal" class="fullscreen-modal-overlay">
+        <div class="fullscreen-modal-content">
+            <div class="fullscreen-modal-header">
+                <button class="header-close-btn" onclick="closeMaterialModal()">✕</button>
+                <h3 class="modal-title">教材を追加</h3>
+                <button class="header-save-btn" onclick="saveMaterial()">保存</button>
+            </div>
+            <div class="fullscreen-modal-body">
+                <div class="form-group"><label>教材の名前 <span class="required">※</span></label><input type="text" id="material-name" placeholder="例：青チャートII+B"></div>
+                <div class="form-group"><label>画像</label><div class="image-upload-wrapper"><img src="img/default_book_img.png" id="preview-img" class="image-preview"><button class="upload-btn" onclick="document.getElementById('material-image-input').click()">画像を選択</button><input type="file" id="material-image-input" accept="image/*" style="display:none" onchange="previewMaterialImage(this)"></div></div>
+                <div class="form-group"><label>カテゴリー</label><select id="material-category"><option>英語</option><option>数学</option><option>理科</option><option>社会</option><option>国語</option><option>その他</option></select></div>
+                <div class="form-group"><label>単位</label><select id="material-unit"><option>ページ</option><option>問</option><option>章</option><option>分</option><option>回</option></select></div>
             </div>
         </div>
     </div>
@@ -136,34 +197,18 @@
         <div class="popup-content settings-modal-content">
             <h3 style="margin-top: 0; color: #006680;">⚙ 設定</h3>
             <div class="settings-section">
-                <div class="special-code-group">
-                    <h4 style="margin: 0 0 10px 0; color: #006680; font-size: 1em;">特殊コード</h4>
-                    <div style="margin-bottom: 12px; display: flex; align-items: center;">
-                        <input type="checkbox" id="special-code-toggle" style="margin-right: 8px; transform: scale(1.2); cursor: pointer;">
-                        <label for="special-code-toggle" style="font-weight: bold; cursor: pointer;">特殊コード機能を有効にする</label>
-                    </div>
-                    <label for="special-code-input" style="font-weight: bold; display: block; margin-bottom: 8px;">特殊コード (HTML)</label>
-                    <textarea id="special-code-input" class="special-code-textarea" placeholder="ここにHTMLコードを入力してください..."></textarea>
+                <div class="backup-controls-vertical">
+                    <button onclick="exportData()" class="export-btn">データ書き出し</button>
+                    <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み</button>
+                    <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".rep">
+                    <button onclick="showSyncLog()" class="log-btn">操作ログ</button>
                 </div>
-
-                <div class="settings-section" style="margin-top: 20px;">
-                    <h4 style="margin: 0 0 10px 0; color: #006680; font-size: 1em;">データ管理</h4>
-                    <div class="backup-controls-vertical">
-                        <button onclick="exportData()" class="export-btn">データ書き出し (保存)</button>
-                        <button onclick="document.getElementById('import-file').click()" class="import-btn">データ読み込み (復元)</button>
-                        <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".rep">
-                        <button onclick="showSyncLog()" class="log-btn">操作ログ</button>
-                    </div>
-                </div>
-                <p id="app-version-display" style="text-align: center; font-size: 0.8em; color: #999; margin-top: 15px; margin-bottom: 5px;"></p>
+                <p id="app-version-display" style="text-align: center; color: #999; margin-top: 10px;"></p>
             </div>
-            <div class="confirm-buttons">
-                <button onclick="closeSettings()" class="popup-btn cancel">キャンセル</button>
-                <button onclick="saveSettings()" class="popup-btn">保存</button>
-            </div>
+            <div class="confirm-buttons"><button onclick="closeSettings()" class="popup-btn cancel">閉じる</button></div>
         </div>
     </div>
-
+    
     <div id="login-modal" class="popup-overlay">
         <div class="popup-content login-modal-content">
             <h3 style="margin-top: 0; color: #006680;">ログイン</h3>
@@ -195,55 +240,22 @@
             <button onclick="closeLoginModal()" class="popup-btn cancel" style="margin-top: 15px; width: 100%;">キャンセル</button>
         </div>
     </div>
-
-    <!-- 教材追加モーダル (全画面表示) -->
-    <div id="material-modal" class="fullscreen-modal-overlay">
-        <div class="fullscreen-modal-content">
-            <div class="fullscreen-modal-header">
-                <button class="header-close-btn" onclick="closeMaterialModal()" title="キャンセル">✕</button>
-                <h3 class="modal-title">教材を追加</h3>
-                <button class="header-save-btn" onclick="saveMaterial()">保存</button>
-            </div>
-            <div class="fullscreen-modal-body">
-                <div class="form-group">
-                    <label for="material-name">教材の名前 <span class="required">※</span></label>
-                    <input type="text" id="material-name" placeholder="例：Focus Gold 数学II+B">
-                </div>
-
-                <div class="form-group">
-                    <label>教材の写真・画像</label>
-                    <div class="image-upload-wrapper">
-                        <div id="material-image-preview" class="image-preview">
-                            <img src="img/default_book_img.png" alt="デフォルト教材画像" id="preview-img">
-                        </div>
-                        <input type="file" id="material-image-input" accept="image/*" style="display: none;" onchange="previewMaterialImage(this)">
-                        <button class="upload-btn" onclick="document.getElementById('material-image-input').click()">画像を選択 / 撮影</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="material-category">カテゴリー</label>
-                    <select id="material-category">
-                        <option value="英語">英語</option>
-                        <option value="数学">数学</option>
-                        <option value="国語">国語</option>
-                        <option value="理科">理科</option>
-                        <option value="社会">社会</option>
-                        <option value="読書">読書</option>
-                        <option value="資格試験">資格試験</option>
-                        <option value="その他">その他</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="material-unit">単位（計測方法）</label>
-                    <select id="material-unit">
-                        <option value="ページ">ページ</option>
-                        <option value="回">回</option>
-                        <option value="章・節">章・節</option>
-                        <option value="分">分（時間）</option>
-                    </select>
-                </div>
+    
+    <div id="sync-log-modal" class="popup-overlay">
+        <div class="popup-content log-modal-content">
+            <h3>操作ログ</h3>
+            <div id="sync-log-list" class="sync-log-list"></div>
+            <button onclick="closeSyncLogModal()" class="popup-btn">閉じる</button>
+        </div>
+    </div>
+    
+    <div id="export-modal" class="popup-overlay">
+        <div class="popup-content">
+            <p>書き出しオプション</p>
+            <div class="confirm-buttons" style="flex-direction: column; gap: 10px;">
+                <button id="export-with-logs-btn" class="popup-btn">ログを含めて書き出し</button>
+                <button id="export-no-logs-btn" class="popup-btn" style="background-color: #4CAF50;">データのみ書き出し</button>
+                <button id="export-cancel-btn" class="popup-btn cancel">キャンセル</button>
             </div>
         </div>
     </div>
@@ -251,9 +263,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-
-    <script src="./js/firebase-init.js?v=custom"></script>
-    <script src="./js/script.js?v=2.0.0 Beta1"></script>
+    <script src="./js/firebase-init.js"></script>
+    <script src="./js/script.js?v=2.0.0 Beta3"></script>
 </body>
-
 </html>
