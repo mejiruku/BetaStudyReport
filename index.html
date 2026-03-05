@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="2Beta0">
-    <link rel="stylesheet" href="./css/style.css?v=2Beta0">
+    <meta name="data-app-version" content="2Beta1">
+    <link rel="stylesheet" href="./css/style.css?v=2Beta1">
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -95,18 +95,14 @@
                 <input type="date" id="report-date">
                 <button onclick="loadReportDataForDate()" class="reload-btn">更新</button>
             </div>
-
-            <div class="report-preview-info">
-                <p>※ タイムラインの記録から自動生成されます</p>
-            </div>
-
+           
             <div id="subjects-container"></div>
 
             <div class="controls">
                 <button class="add-btn" onclick="addSubject()">＋ 手動で行を追加</button>
                 <button class="reset-btn" onclick="resetData()">この日の入力をクリア</button>
             </div>
-
+          
             <div class="global-comment-section">
                 <label>全体の感想・コメント</label>
                 <textarea id="global-comment-text" placeholder="今日の感想、反省点など..." oninput="onCommentInput()"></textarea>
@@ -117,7 +113,8 @@
                 <div class="total-display" id="screen-total">合計: 0時間 0分</div>
                 <button class="copy-btn" onclick="copyToClipboard()">📋 コピーする</button>
                 <textarea id="output-text" readonly></textarea>
-            </div>
+            </div>  
+
         </div>
     </div>
 
@@ -283,6 +280,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="./js/firebase-init.js"></script>
-    <script src="./js/script.js?v=2Beta0"></script>
+    <script src="./js/script.js?v=2Beta1"></script>
 </body>
 </html>

@@ -651,9 +651,14 @@ h2 {
   align-items: center;
   text-align: center;
   cursor: pointer;
-  transition: transform 0.15s;
-  padding: 6px;
+  transition:
+    transform 0.15s,
+    box-shadow 0.2s;
+  padding: 8px 6px 10px;
   border-radius: 10px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
 }
 
 .material-card:active {
@@ -661,6 +666,8 @@ h2 {
 }
 .material-card:hover {
   background: var(--primary-light);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
 .material-thumb {
@@ -704,19 +711,20 @@ h2 {
 
 .timeline-item {
   background: var(--card-bg);
-  border-left: 4px solid var(--primary);
+  border: 1px solid var(--border);
   padding: 12px 14px;
   border-radius: 10px;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.2s;
+  position: relative;
 }
 
 .timeline-item:hover {
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 
 /* 教材サムネイル */
@@ -727,17 +735,112 @@ h2 {
   border-radius: 5px;
   flex-shrink: 0;
   background: var(--border);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
-.timeline-content { flex: 1; min-width: 0; }
-.timeline-time { font-size: 0.75rem; color: var(--text-sub); margin-bottom: 2px; }
-.timeline-title { font-weight: 700; color: var(--text); font-size: 0.92rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.timeline-detail { font-size: 0.8rem; color: var(--text-sub); }
-.timeline-meta { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
-.timeline-duration { font-weight: 700; color: var(--primary); font-size: 0.95rem; }
-.timeline-delete { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.05rem; opacity: 0.22; padding: 4px; border-radius: 6px; transition: opacity 0.2s; }
-.timeline-delete:hover { opacity: 1; background: var(--danger-light); }
+.timeline-content {
+  flex: 1;
+  min-width: 0;
+}
+.timeline-time {
+  font-size: 0.75rem;
+  color: var(--text-sub);
+  margin-bottom: 2px;
+}
+.timeline-title {
+  font-weight: 700;
+  color: var(--text);
+  font-size: 0.92rem;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.timeline-detail {
+  font-size: 0.8rem;
+  color: var(--text-sub);
+}
+.timeline-meta {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.timeline-duration {
+  font-weight: 700;
+  color: var(--primary);
+  font-size: 0.95rem;
+}
+/* ⋯ メニューボタン */
+.timeline-menu-btn {
+  background: none;
+  border: none;
+  color: var(--text-sub);
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: background 0.2s, color 0.2s;
+  opacity: 0.4;
+}
+.timeline-menu-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+  opacity: 1;
+}
+
+/* ⋯ ドロップダウン */
+.timeline-menu-wrapper {
+  position: relative;
+}
+
+.timeline-dropdown {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 110px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  overflow: hidden;
+  animation: fadeIn 0.12s ease;
+}
+
+.timeline-dropdown.open {
+  display: block;
+}
+
+.timeline-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+  transition: background 0.15s;
+}
+
+.timeline-dropdown-item:hover {
+  background: var(--bg);
+}
+
+.timeline-dropdown-item.danger {
+  color: var(--danger);
+}
+
+.timeline-dropdown-item.danger:hover {
+  background: var(--danger-light);
+}
 
 /* ============================================ */
 /* Report Tab                                   */
@@ -1149,7 +1252,9 @@ header h1 {
   background: rgba(0, 0, 0, 0.06);
 }
 
-.spacer-40 { width: 40px; }
+.spacer-40 {
+  width: 40px;
+}
 
 /* Settings Sections */
 .settings-section {
@@ -1188,10 +1293,14 @@ header h1 {
   cursor: pointer;
   text-align: center;
   border: none;
-  transition: background 0.2s, transform 0.1s;
+  transition:
+    background 0.2s,
+    transform 0.1s;
 }
 
-.btn-block:active { transform: scale(0.98); }
+.btn-block:active {
+  transform: scale(0.98);
+}
 
 .btn-logout {
   background: var(--danger-light);
@@ -1199,7 +1308,9 @@ header h1 {
   border: 1px solid #fecaca;
 }
 
-.btn-logout:hover { background: #fecaca; }
+.btn-logout:hover {
+  background: #fecaca;
+}
 
 .btn-data {
   background: var(--card-bg);
@@ -1207,7 +1318,9 @@ header h1 {
   border: 1.5px solid #bfdbfe;
 }
 
-.btn-data:hover { background: var(--primary-light); }
+.btn-data:hover {
+  background: var(--primary-light);
+}
 
 /* Log Detail Popup */
 .log-popup-content {
@@ -1625,7 +1738,11 @@ header h1 {
     padding: 12px;
   }
 
-  #auth-view { padding: 0; align-items: stretch; background: var(--card-bg); }
+  #auth-view {
+    padding: 0;
+    align-items: stretch;
+    background: var(--card-bg);
+  }
   .auth-box {
     border-radius: 0;
     box-shadow: none;

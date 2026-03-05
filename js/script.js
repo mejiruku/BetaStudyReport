@@ -94,11 +94,15 @@ if ('serviceWorker' in navigator) {
             authView.style.display = 'none';
             showLoading(true);
 
-            await renderMaterials();
-            await loadGlobalTimeline();
-
-            showLoading(false);
-            switchView('app-container');
+            try {
+                await renderMaterials();
+                await loadGlobalTimeline();
+            } catch (e) {
+                console.error('初期化エラー:', e);
+            } finally {
+                showLoading(false);
+                switchView('app-container');
+            }
         } else {
             currentUser = null;
             materialsCache = [];
@@ -355,12 +359,51 @@ function renderGlobalTimeline(logs) {
         meta.className = 'timeline-meta';
         meta.innerHTML = `<div class="timeline-duration">${log.durationMinutes}分</div>`;
 
-        const delBtn = document.createElement('button');
-        delBtn.className = 'timeline-delete';
-        delBtn.textContent = '×';
-        delBtn.title = '削除';
-        delBtn.addEventListener('click', () => deleteTimelineLog(log.id, log.dateKey));
-        meta.appendChild(delBtn);
+        // ⋯ メニュー
+        const menuWrapper = document.createElement('div');
+        menuWrapper.className = 'timeline-menu-wrapper';
+
+        const menuBtn = document.createElement('button');
+        menuBtn.className = 'timeline-menu-btn';
+        menuBtn.textContent = '⋯';
+        menuBtn.title = 'メニュー';
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'timeline-dropdown';
+
+        const editItem = document.createElement('button');
+        editItem.className = 'timeline-dropdown-item';
+        editItem.textContent = '✏️ 編集';
+        editItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.remove('open');
+            editTimelineLog(log);
+        });
+
+        const delItem = document.createElement('button');
+        delItem.className = 'timeline-dropdown-item danger';
+        delItem.textContent = '🗑️ 削除';
+        delItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.remove('open');
+            deleteTimelineLog(log.id, log.dateKey);
+        });
+
+        dropdown.appendChild(editItem);
+        dropdown.appendChild(delItem);
+
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // 他の開いているメニューを閉じる
+            document.querySelectorAll('.timeline-dropdown.open').forEach(d => {
+                if (d !== dropdown) d.classList.remove('open');
+            });
+            dropdown.classList.toggle('open');
+        });
+
+        menuWrapper.appendChild(menuBtn);
+        menuWrapper.appendChild(dropdown);
+        meta.appendChild(menuWrapper);
 
         item.appendChild(thumb);
         item.appendChild(content);
@@ -371,13 +414,73 @@ function renderGlobalTimeline(logs) {
     listEl.appendChild(fragment);
 }
 
+// ドロップダウンを外部クリックで閉じる
+document.addEventListener('click', () => {
+    document.querySelectorAll('.timeline-dropdown.open').forEach(d => d.classList.remove('open'));
+});
+
+// タイムラインログの編集
+function editTimelineLog(log) {
+    const material = materialsCache.find(m => m.name === log.materialName) || { name: log.materialName, unit: log.unit || 'ページ', category: log.category };
+    const modal = document.getElementById('log-detail-modal');
+    document.getElementById('log-detail-title').textContent = `${log.materialName} の記録を編集`;
+    const unit = material.unit || 'ページ';
+    document.querySelectorAll('.unit-display').forEach(el => el.textContent = unit);
+    document.getElementById('unit-help-range').textContent = `単位: ${unit}`;
+    document.getElementById('log-duration-input').value = log.durationMinutes || '';
+    document.getElementById('log-content-input').value = log.content || '';
+    document.getElementById('log-range-start').value = '';
+    document.getElementById('log-range-end').value = '';
+    document.getElementById('log-amount-val').value = '';
+    document.getElementById('progress-type-range').checked = true;
+    toggleProgressInput();
+
+    const saveBtn = document.getElementById('log-save-btn');
+    const newBtn = saveBtn.cloneNode(true);
+    newBtn.textContent = '更新する';
+    saveBtn.parentNode.replaceChild(newBtn, saveBtn);
+
+    newBtn.addEventListener('click', async () => {
+        const duration = parseInt(document.getElementById('log-duration-input').value);
+        if (isNaN(duration) || duration < 0) { alert('学習時間を正しく入力してください'); return; }
+        const content = document.getElementById('log-content-input').value;
+        showLoading(true);
+        try {
+            if (currentUser) {
+                await db.collection('users').doc(currentUser.uid).collection('timeline').doc(log.id).update({
+                    durationMinutes: duration,
+                    content: content
+                });
+            } else {
+                const logs = getLocalTimeline(log.dateKey);
+                const idx = logs.findIndex(l => l.id === log.id);
+                if (idx !== -1) {
+                    logs[idx].durationMinutes = duration;
+                    logs[idx].content = content;
+                    localStorage.setItem(`studyReportTimeline_${log.dateKey}`, JSON.stringify(logs));
+                }
+            }
+            addSyncLog(`編集: ${log.materialName} ${duration}分`);
+            showPopup('更新しました！');
+            closeLogDetailModal();
+            loadGlobalTimeline();
+        } catch (e) {
+            showPopup(`更新エラー: ${e.message}`);
+        } finally {
+            showLoading(false);
+        }
+    });
+    modal.classList.add('show');
+}
+
+
 // ============================================
 // Stopwatch & Record
 // ============================================
 
 function selectMaterial(m) {
     if (activeSession) { alert('現在計測中です。終了してから新しい学習を始めてください。'); return; }
-    showConfirm(`「${m.name}」の学習を始めますか？\n\n[OK] ストップウォッチ開始\n[キャンセル] 手動で記録`).then(isTimer => {
+    showConfirm(`${m.name}の学習を始めますか？\n\n選択してください`).then(isTimer => {
         if (isTimer) startSession(m);
         else openManualLogModal(m);
     });

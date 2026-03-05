@@ -1,4 +1,4 @@
-const CACHE_NAME = '2Beta0'; // バージョン管理
+const CACHE_NAME = '2Beta1'; // バージョン管理
 const urlsToCache = [
     './',              // index.html
     './index.html',
@@ -75,9 +75,3 @@ self.addEventListener('fetch', function(event) {
         })
     );
 });
-
-
-window.db.enablePersistence()
-  .catch(function(err) {
-      console.error("Firestoreのオフライン永続化でエラーが発生しました:", err);
-  });
