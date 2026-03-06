@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>StudyReport</title>
-    <meta name="data-app-version" content="2Beta1">
-    <link rel="stylesheet" href="./css/style.css?v=2Beta1">
+    <meta name="data-app-version" content="2.0.0 Beta2">
+    <link rel="stylesheet" href="./css/style.css">
     <link rel="manifest" href="./manifest.json">
     <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="./assets/apple-touch-icon-180x180.png">
@@ -95,31 +95,31 @@
                 <input type="date" id="report-date">
                 <button onclick="loadReportDataForDate()" class="reload-btn">更新</button>
             </div>
-           
-            <div id="subjects-container"></div>
 
-            <div class="controls">
+            <div id="subjects-container" style="display: none;"></div>
+
+            <div class="controls" style="display: none;">
                 <button class="add-btn" onclick="addSubject()">＋ 手動で行を追加</button>
                 <button class="reset-btn" onclick="resetData()">この日の入力をクリア</button>
             </div>
-          
+
             <div class="global-comment-section">
                 <label>全体の感想・コメント</label>
                 <textarea id="global-comment-text" placeholder="今日の感想、反省点など..." oninput="onCommentInput()"></textarea>
             </div>
 
-            <div class="result-area">
+           <div class="result-area">
                 <h3>メール本文</h3>
                 <div class="total-display" id="screen-total">合計: 0時間 0分</div>
                 <button class="copy-btn" onclick="copyToClipboard()">📋 コピーする</button>
-                <textarea id="output-text" readonly></textarea>
-            </div>  
+                <textarea id="output-text" readonly style="resize: none;"></textarea>
+            </div>
 
         </div>
     </div>
 
     <!-- ===== 設定ビュー (SmartSRS スタイル) ===== -->
-    <div class="container" id="settings-view">
+    <div class="container" id="settings-view" style="display: none;">
         <header>
             <button class="icon-btn" onclick="closeSettings()">←</button>
             <h1>設定</h1>
@@ -130,6 +130,20 @@
             <h3>アカウント</h3>
             <p id="user-email-display" class="user-email-display"></p>
             <button class="btn-block btn-logout" onclick="handleLogout()">ログアウト</button>
+        </div>
+
+        <div class="settings-section">
+            <h3>日報・学習の設定</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 12px;">
+    <span style="font-size: 0.95rem; font-weight: 600; color: var(--text);">日報の手動入力エリアを表示</span>
+    <label class="switch">
+        <input type="checkbox" id="setting-manual-input" onchange="toggleManualInput(this.checked)">
+        <span class="slider"></span>
+    </label>
+</div>
+
+            <button class="btn-block btn-data" onclick="openManageMaterialsModal()">📚 教材の管理</button>
+            <button class="btn-block btn-data" onclick="openManageOptionsModal()">🏷️ カテゴリと単位の管理</button>
         </div>
 
         <div class="settings-section">
@@ -147,53 +161,85 @@
 
     <!-- ===== Modals ===== -->
 
-    <!-- Log Detail Modal -->
-    <div id="log-detail-modal" class="popup-overlay">
-        <div class="popup-content log-popup-content">
-            <h3 id="log-detail-title" style="margin-top:0; color: var(--primary); margin-bottom: 18px;">学習の記録</h3>
+    <!-- Log Detail Modal (Fullscreen, 2タブ) -->
+    <div id="log-detail-modal" class="fullscreen-modal-overlay">
+        <div style="display: flex; flex-direction: column; height: 100%;">
+            <!-- ヘッダー -->
+            <div class="fullscreen-modal-header">
+                <button class="header-close-btn" onclick="closeLogDetailModal()">✕</button>
+                <h3 id="log-detail-title" class="modal-title">学習の記録</h3>
+                <button id="log-save-btn" class="header-save-btn">記録する</button>
+            </div>
 
-            <div class="form-group">
-                <label>学習時間</label>
-                <div class="time-input-wrapper">
-                    <input type="tel" id="log-duration-input" placeholder="0" class="big-number-input">
-                    <span class="unit-label">分</span>
+            <!-- タブナビゲーション -->
+            <div class="log-modal-tabs">
+                <button class="log-tab-btn active" id="log-tab-timer-btn" onclick="switchLogTab('timer')">⏱ タイマー</button>
+                <button class="log-tab-btn" id="log-tab-progress-btn" onclick="switchLogTab('progress')">📝 進捗・詳細</button>
+            </div>
+
+            <!-- タイマータブ -->
+            <div id="log-tab-timer" class="log-tab-content active fullscreen-modal-body">
+                <div style="text-align:center; padding: 32px 0 24px;">
+                    <!-- 計測ステータスラベル -->
+                    <div id="timer-status-label" class="timer-status-label">停止中</div>
+                    <!-- タイマー表示 -->
+                    <div id="log-session-timer" class="log-timer-display">00:00:00</div>
+                    <!-- スタート/ストップボタン -->
+                    <div class="timer-btn-row">
+                        <button id="timer-start-btn" class="timer-start-btn" onclick="startTimer()">▶ スタート</button>
+                        <button id="timer-stop-btn" class="timer-stop-btn" onclick="pauseTimer()" style="display:none;">⏸ ストップ</button>
+                    </div>
+                   
                 </div>
             </div>
 
-            <div class="form-group">
-                <label style="margin-bottom: 8px;">進捗の記録</label>
-                <div class="toggle-switch-container">
-                    <input type="radio" id="progress-type-range" name="progress-type" value="range" checked onchange="toggleProgressInput()">
-                    <label for="progress-type-range" class="toggle-label">範囲 (〜)</label>
-                    <input type="radio" id="progress-type-amount" name="progress-type" value="amount" onchange="toggleProgressInput()">
-                    <label for="progress-type-amount" class="toggle-label">合計量</label>
+            <!-- 進捗・詳細タブ -->
+            <div id="log-tab-progress" class="log-tab-content fullscreen-modal-body" style="display:none;">
+                <div style="width: 100%; max-width: 400px; margin: 0 auto; padding-top: 10px;">
+
+                    <div class="form-group">
+                        <label>学習時間（分）</label>
+                        <div class="time-input-wrapper">
+                            <input type="tel" id="log-duration-input" placeholder="0" class="big-number-input" oninput="onManualTimeInput()">
+                            <span class="unit-label">分</span>
+                        </div>
+                        <p style="font-size:0.78rem; color:var(--text-sub); text-align:center; margin-top:6px;">※ タイマーと連動。変更するとタイマーもその時間から再開します</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="margin-bottom: 8px;">進捗の記録</label>
+                        <div class="toggle-switch-container">
+                            <input type="radio" id="progress-type-range" name="progress-type" value="range" checked onchange="toggleProgressInput()">
+                            <label for="progress-type-range" class="toggle-label">範囲</label>
+                            <input type="radio" id="progress-type-amount" name="progress-type" value="amount" onchange="toggleProgressInput()">
+                            <label for="progress-type-amount" class="toggle-label">合計量</label>
+                        </div>
+                    </div>
+
+                    <div id="progress-input-range" class="progress-input-group">
+                        <div class="range-inputs">
+                            <input type="tel" id="log-range-start" placeholder="開始" class="range-field">
+                            <span class="range-sep">〜</span>
+                            <input type="tel" id="log-range-end" placeholder="終了" class="range-field">
+                        </div>
+                        <div class="unit-help" id="unit-help-range">単位: ページ</div>
+                    </div>
+
+                    <div id="progress-input-amount" class="progress-input-group" style="display:none;">
+                        <div class="amount-inputs">
+                            <input type="tel" id="log-amount-val" placeholder="合計" class="amount-field">
+                            <span id="log-unit-display-amount" class="unit-display">ページ</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label>やった内容 (任意)</label>
+                        <textarea id="log-content-input" placeholder="例：第1章の復習" style="height: 80px; width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; box-sizing: border-box; resize: none; font-family: inherit; margin-bottom: 12px;"></textarea>
+                        <label>メモ (任意)</label>
+                        <textarea id="log-memo-input" placeholder="感想や気づきなど" style="height: 80px; width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 10px; font-size: 1rem; box-sizing: border-box; resize: none; font-family: inherit;"></textarea>
+                    </div>
+
                 </div>
-            </div>
-
-            <div id="progress-input-range" class="progress-input-group">
-                <div class="range-inputs">
-                    <input type="tel" id="log-range-start" placeholder="開始" class="range-field">
-                    <span class="range-sep">〜</span>
-                    <input type="tel" id="log-range-end" placeholder="終了" class="range-field">
-                </div>
-                <div class="unit-help" id="unit-help-range">単位: ページ</div>
-            </div>
-
-            <div id="progress-input-amount" class="progress-input-group" style="display:none;">
-                <div class="amount-inputs">
-                    <input type="tel" id="log-amount-val" placeholder="合計" class="amount-field">
-                    <span id="log-unit-display-amount" class="unit-display">ページ</span>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 14px;">
-                <label>コメント (任意)</label>
-                <textarea id="log-content-input" placeholder="感想やメモ" style="height: 60px;"></textarea>
-            </div>
-
-            <div class="confirm-buttons">
-                <button onclick="closeLogDetailModal()" class="popup-btn cancel">キャンセル</button>
-                <button id="log-save-btn" class="popup-btn">記録する</button>
             </div>
         </div>
     </div>
@@ -215,18 +261,19 @@
         </div>
     </div>
 
-    <!-- Material Add Modal (Fullscreen) -->
+    <!-- Material Add/Edit Modal (Fullscreen) -->
     <div id="material-modal" class="fullscreen-modal-overlay">
         <div style="display: flex; flex-direction: column; height: 100%;">
             <div class="fullscreen-modal-header">
                 <button class="header-close-btn" onclick="closeMaterialModal()">✕</button>
-                <h3 class="modal-title">教材を追加</h3>
+                <h3 class="modal-title" id="material-modal-title">教材を追加</h3>
                 <button class="header-save-btn" onclick="saveMaterial()">保存</button>
             </div>
             <div class="fullscreen-modal-body">
+                <input type="hidden" id="edit-material-id" value="">
                 <div class="form-group">
                     <label>教材の名前 <span class="required">※</span></label>
-                    <input type="text" id="material-name" placeholder="例：青チャートII+B">
+                    <input type="text" id="material-name" placeholder="例：青チャート 数II">
                 </div>
                 <div class="form-group">
                     <label>画像</label>
@@ -239,16 +286,61 @@
                 <div class="form-group">
                     <label>カテゴリー</label>
                     <select id="material-category">
-                        <option>英語</option><option>数学</option><option>理科</option>
-                        <option>社会</option><option>国語</option><option>その他</option>
+                        
                     </select>
                 </div>
                 <div class="form-group">
                     <label>単位</label>
                     <select id="material-unit">
-                        <option>ページ</option><option>問</option><option>章</option>
-                        <option>分</option><option>回</option>
+
                     </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Materials Modal (Fullscreen) -->
+    <div id="manage-materials-modal" class="fullscreen-modal-overlay">
+        <div style="display: flex; flex-direction: column; height: 100%; background: #f8fafc;">
+            <div class="fullscreen-modal-header">
+                <button class="header-close-btn" onclick="closeManageMaterialsModal()">✕</button>
+                <h3 class="modal-title">教材の管理</h3>
+                <button class="header-save-btn" onclick="openMaterialModal()" style="font-size: 0.8rem;">＋ 追加</button>
+            </div>
+            <div class="fullscreen-modal-body" style="padding: 10px; flex: 1; overflow-y: auto;">
+                <p style="text-align:center; font-size:0.8rem; color:var(--text-sub); margin-bottom: 12px;">上下ボタンで優先順位を変更できます</p>
+                <div id="manage-materials-list" class="manage-list-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Options (Category/Unit) Modal -->
+    <div id="manage-options-modal" class="fullscreen-modal-overlay">
+        <div style="display: flex; flex-direction: column; height: 100%; background: #f8fafc;">
+            <div class="fullscreen-modal-header">
+                <button class="header-close-btn" onclick="closeManageOptionsModal()">←</button>
+                <h3 class="modal-title">カテゴリ・単位の管理</h3>
+                <div style="width: 44px;"></div><!-- header balance -->
+            </div>
+            <div class="fullscreen-modal-body" style="padding: 16px;">
+                <div class="options-section">
+                    <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--text);">カテゴリーの管理</h4>
+                    <ul id="manage-category-list" class="manage-options-list"></ul>
+                    <div class="option-add-row">
+                        <input type="text" id="new-category-input" placeholder="新しいカテゴリ (例: 資格)">
+                        <button onclick="addCustomCategory()" class="primary-btn" style="width:auto; margin-top:0; padding: 10px 16px;">追加</button>
+                    </div>
+                </div>
+
+                <div class="separator"></div>
+
+                <div class="options-section">
+                    <h4 style="margin: 0 0 10px 0; font-size: 0.95rem; color: var(--text);">単位の管理</h4>
+                    <ul id="manage-unit-list" class="manage-options-list"></ul>
+                    <div class="option-add-row">
+                        <input type="text" id="new-unit-input" placeholder="新しい単位 (例: 講)">
+                        <button onclick="addCustomUnit()" class="primary-btn" style="width:auto; margin-top:0; padding: 10px 16px;">追加</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -280,6 +372,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="./js/firebase-init.js"></script>
-    <script src="./js/script.js?v=2Beta1"></script>
+    <script src="./js/script.js"></script>
 </body>
 </html>
